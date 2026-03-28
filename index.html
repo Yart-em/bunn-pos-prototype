@@ -175,14 +175,14 @@
     letter-spacing:.08em; line-height:1.2;
   }
 
-  /* NFC tap button — bottom-left of card, half-overlapping the edge */
+  /* NFC tap button — bottom-left of card, fully inside card */
   .nfc-btn {
     position:absolute;
-    top:calc(53px + 49vh - 32px); /* card bottom minus half-button */
-    left:calc(2.99% + 18px);
-    width:clamp(54px,15vw,72px); aspect-ratio:1;
+    top:calc(53px + 35.7vh);
+    left:5.5%;
+    width:clamp(50px,14.7%,64px); aspect-ratio:1;
     border-radius:50%;
-    background:#272727;
+    background:rgba(0,0,0,0.8);
     border:none; outline:none; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
     box-shadow:0 4px 8px rgba(0,0,0,.2), 0 12px 28px rgba(0,0,0,.18);
@@ -208,29 +208,35 @@
     max-width:52%; /* leave room for bunny on right */
   }
 
-  /* Bunny — right side, partially overflowing card's right edge, Figma: 100% opacity, rotated 35.96° */
-  .bunny-img {
+  /* Illustrations frame (Figma Frame 52: X:147,Y:304,W:255,H:444, clip content) */
+  .pay-illus-frame {
     position:absolute;
-    top:calc(53px + 34vh);
-    right:-14%;
-    width:73%;
-    transform:rotate(35.96deg);
-    transform-origin:center center;
+    left:36.6%; top:calc(53px + 29vh);
+    width:63.4%; height:51vh;
+    overflow:hidden;
     pointer-events:none;
     z-index:3;
   }
 
-  /* Tap illustration — below card, Figma: 60% image opacity, rotated -12.48° */
+  /* Bunny — right side, rotated 35.96° — relative within frame */
+  .bunny-img {
+    position:absolute;
+    top:-5%; right:-18%;
+    width:100%;
+    transform:rotate(35.96deg);
+    transform-origin:60% 10%;
+    pointer-events:none;
+  }
+
+  /* Tap illustration — below card, Figma: 60% image opacity, rotated -12.48° — relative within frame */
   .tap-img {
     position:absolute;
-    top:calc(53px + 49vh + 14px);
-    left:-8%;
-    width:108%;
+    bottom:-5%; left:-20%;
+    width:130%;
     opacity:0.6;
     transform:rotate(-12.48deg);
     transform-origin:center top;
     pointer-events:none;
-    z-index:2;
   }
 
   /* X close button — outside card div so it isn't clipped by overflow:hidden.
@@ -422,6 +428,100 @@
   .k.bksp svg { width:30%; height:30%; }
   /* Backspace icon turns dark on yellow bg */
   .k.bksp.pressed svg path { fill:#272727; }
+
+  /* ── Success screen ── */
+  .success-card {
+    position:absolute;
+    top:53px; left:2.99%; right:3.23%; bottom:10px;
+    background:#FFC803;
+    border-radius:35px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    align-items:center;
+  }
+  .success-title {
+    font-weight:700;
+    font-size:clamp(52px,18vw,88px);
+    letter-spacing:.05em;
+    color:rgba(0,0,0,.85);
+    padding-top:10%;
+    line-height:1;
+    flex-shrink:0;
+  }
+  /* Receipt slides up from bottom inside the success card */
+  .receipt {
+    position:absolute;
+    bottom:0; left:0; right:0;
+    background:#fff;
+    border-radius:20px 20px 0 0;
+    padding:20px 22px 0;
+    transform:translateY(100%);
+    z-index:2;
+  }
+  .receipt.slide-in {
+    animation: receiptUp 0.55s cubic-bezier(.22,.68,0,1.2) forwards;
+  }
+  @keyframes receiptUp {
+    to { transform:translateY(0); }
+  }
+  .receipt-header {
+    display:flex; align-items:center; justify-content:center;
+    position:relative; margin-bottom:10px;
+  }
+  .receipt-logo {
+    font-family:'Engravers Gothic',sans-serif;
+    font-weight:700; font-size:18px; letter-spacing:.15em;
+    color:rgba(0,0,0,.85);
+  }
+  .print-btn {
+    position:absolute; right:0;
+    width:36px; height:36px; border-radius:50%;
+    background:#f0f0f0; border:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+  }
+  .receipt-date {
+    font-family:system-ui,sans-serif; font-size:13px;
+    color:rgba(0,0,0,.55); margin-bottom:14px;
+  }
+  .receipt-section { margin-bottom:12px; }
+  .receipt-label {
+    font-family:'Engravers Gothic',sans-serif;
+    font-size:9px; letter-spacing:.15em;
+    color:rgba(0,0,0,.45); font-weight:700;
+    margin-bottom:3px;
+  }
+  .receipt-value {
+    font-family:system-ui,sans-serif; font-size:13px;
+    color:rgba(0,0,0,.75); line-height:1.5;
+  }
+  .success-badge {
+    display:inline-block; background:#FFB3B3;
+    border-radius:20px; padding:1px 8px;
+    font-size:11px; font-weight:700;
+    color:rgba(0,0,0,.75); letter-spacing:.05em;
+    text-transform:uppercase; margin-left:4px;
+  }
+  /* Scalloped bottom edge of receipt */
+  .receipt-scallop {
+    height:18px;
+    background:radial-gradient(circle at 10px -1px, transparent 12px, #fff 13px) repeat-x;
+    background-size:20px 18px;
+    margin:16px -22px 0;
+  }
+  /* Bunny SVG at bottom of success screen */
+  .success-bunny {
+    position:absolute;
+    bottom:0; left:50%;
+    transform:translateX(-50%);
+    width:80%;
+    pointer-events:none;
+    z-index:1;
+  }
+  .success-bunny img {
+    width:100%; height:auto;
+    display:block;
+  }
 </style>
 </head>
 <body>
@@ -590,11 +690,11 @@
     </svg>
   </button>
 
-  <!-- Bunny illustration — right side, overlapping card edge -->
-  <img class="bunny-img" src="bunny.png" alt="">
-
-  <!-- Tap-to-pay illustration — below card, 60% opacity as in Figma -->
-  <img class="tap-img" src="tap-illustration.png" alt="">
+  <!-- Illustrations frame (Figma Frame 52: X:147,Y:304,W:255,H:444, clip content) -->
+  <div class="pay-illus-frame">
+    <img class="bunny-img" src="bunny.png" alt="">
+    <img class="tap-img" src="tap-illustration.png" alt="">
+  </div>
 
   <!-- Below-card instruction text -->
   <div class="pay-below">
@@ -609,6 +709,103 @@
   </button>
 
 </div><!-- /s3 -->
+
+<!-- ══ Screen 4: Pending on-chain ══ -->
+<div class="screen hidden" id="s4">
+
+  <div class="s2-logo">
+    <svg viewBox="149 20 102 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M152.836 28.9498C152.836 28.9498 149.568 28.9797 150.049 25.2416C150.184 24.19 151.11 23.0281 152.032 22.4117C153.204 21.5819 154.805 21.3893 156.221 21.279C159.329 21.0598 167.498 21.2292 166.85 25.2775C166.652 26.5131 165.255 27.8996 164.199 28.1367M164.199 28.1367C164.199 28.1367 165.091 28.3506 165.293 28.3958C166.083 28.5845 166.594 29.0375 167.18 29.5889C168.382 30.6883 168.449 32.6514 167.506 33.9282C166.955 34.6809 166.133 35.2063 165.283 35.599L165.27 35.6043C163.479 36.3809 161.555 36.7263 159.62 36.8798C157.636 37.0093 155.179 37.2119 153.329 36.3735C151.805 35.6833 150.737 32.9962 152.835 28.9492M161.021 25.9691C160.905 24.5687 158.556 24.5335 157.819 25.4801C157.503 25.8608 157.367 26.3982 157.384 26.8971C157.428 27.4943 157.191 27.4379 158.572 27.4286C158.816 27.4272 159.067 27.3927 159.311 27.3508C160.099 27.222 161.036 26.8446 161.021 25.981V25.9691ZM161.082 32.4189C162.109 31.6257 161.599 30.4817 160.463 30.1509C159.628 29.8945 158.595 29.8865 157.718 30.1071C157.355 30.2253 157.191 30.0745 157.193 30.8956C157.194 31.3752 157.175 31.9007 157.431 32.3246C158.013 33.2612 160.054 33.1463 161.071 32.4269L161.082 32.4189Z" fill="black" fill-opacity="0.8"/>
+      <path d="M192.785 22.2409C194.914 23.3968 194.529 25.8967 194.291 27.9301C194.215 28.6144 194.032 30.2499 193.998 30.5515C193.861 31.7313 193.582 32.9384 192.93 33.9541C191.528 36.159 188.666 36.919 186.147 36.899C184.136 36.8744 182.063 36.5821 180.304 35.6289C178.832 34.8549 177.945 33.434 177.477 31.9213C176.849 29.848 176.939 27.7667 177.28 25.5426C177.514 24.2432 177.508 22.3751 178.713 21.6198C180.266 20.6811 182.478 20.7941 183.812 22.0649C185.292 23.5609 184.127 25.4622 183.669 27.1296C182.985 29.3139 183.004 31.6383 185.614 31.9041C186.397 31.9665 187.264 31.6988 187.764 31.0869C188.001 30.7946 188.146 30.4492 188.24 30.0798C188.728 28.1407 187.925 26.4407 187.716 24.6052C187.594 23.7031 187.97 22.7903 188.78 22.2914C189.983 21.5547 191.539 21.5514 192.773 22.2356L192.785 22.2423V22.2409Z" fill="black" fill-opacity="0.8"/>
+      <path d="M221.398 34.9121C221.036 35.9477 219.968 36.6585 218.871 36.7768C216.532 37.0153 214.297 35.8494 213.022 33.9428C212.09 32.6155 211.223 31.0756 210.342 29.7457C209.234 28.1713 208.914 29.0223 209.363 30.3994C209.933 32.2256 210.818 35.0097 208.771 36.2254C207.4 36.9515 205.238 36.8572 204.134 35.674C203.622 35.1147 203.482 34.2929 203.474 33.5602C203.439 32.6321 203.489 31.5194 203.488 30.6977C203.478 28.2776 203.47 26.1332 203.779 23.539C204.136 21.2325 207.265 20.9774 209.161 21.469C211.357 22.0184 212.258 23.9223 213.203 25.7718C213.58 26.5171 214.735 28.8582 215.395 28.912C216.071 28.8402 215.832 27.2213 215.714 26.551C215.597 26.0275 215.392 25.4237 215.242 24.8749C215.04 24.2797 214.96 23.555 215.179 22.9949C215.541 21.8722 217.001 21.2338 218.167 21.4564C218.771 21.5633 219.304 21.8563 219.793 22.2004C222.311 23.9104 221.714 29.1312 221.68 31.9572C221.637 32.9138 221.63 33.992 221.401 34.9021L221.398 34.9121H221.398Z" fill="black" fill-opacity="0.8"/>
+      <path d="M249.633 34.9586C249.27 35.9942 248.202 36.7051 247.106 36.8233C244.766 37.0618 242.531 35.8959 241.257 33.9893C240.325 32.662 239.457 31.1222 238.576 29.7922C237.468 28.2178 237.148 29.0688 237.597 30.4459C238.168 32.2721 239.052 35.0562 237.005 36.2719C235.634 36.998 233.472 36.9037 232.368 35.7205C231.856 35.1612 231.716 34.3394 231.708 33.6067C231.673 32.6786 231.723 31.5659 231.723 30.7442C231.712 28.3241 231.704 26.1797 232.013 23.5855C232.371 21.279 235.499 21.0239 237.395 21.5155C239.591 22.0649 240.493 23.9688 241.437 25.8183C241.814 26.5636 242.969 28.9047 243.629 28.9585C244.305 28.8867 244.066 27.2678 243.948 26.5975C243.831 26.074 243.626 25.4702 243.476 24.9215C243.274 24.3262 243.194 23.6015 243.413 23.0414C243.775 21.9188 245.235 21.2803 246.401 21.5029C247.005 21.6098 247.538 21.9028 248.027 22.2469C250.545 23.9569 249.948 29.1777 249.915 32.0037C249.871 32.9603 249.864 34.0385 249.635 34.9486L249.632 34.9586H249.633Z" fill="black" fill-opacity="0.8"/>
+    </svg>
+  </div>
+
+  <div class="wait-card" id="s4-card">
+    <div class="wait-top">
+      <div class="checking-lbl">PENDING ON-CHAIN<br>CONFIRMATION FOR PAYMENT</div>
+      <div class="wait-amount" id="s4-aed">254.00 AED</div>
+      <div class="wait-via" id="s4-usdc">VIA 69.21 USDC</div>
+    </div>
+    <div class="wait-vid-wrap">
+      <video class="coins-vid" autoplay muted loop playsinline>
+        <source src="coins.mp4" type="video/mp4">
+        <source src="coins.webm" type="video/webm">
+      </video>
+    </div>
+  </div>
+
+  <button class="wait-close" id="s4-close" aria-label="Cancel">
+    <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="white"/>
+    </svg>
+  </button>
+
+</div><!-- /s4 -->
+
+<!-- ══ Screen 5: Success ══ -->
+<div class="screen hidden" id="s5">
+
+  <div class="s2-logo">
+    <svg viewBox="149 20 102 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M152.836 28.9498C152.836 28.9498 149.568 28.9797 150.049 25.2416C150.184 24.19 151.11 23.0281 152.032 22.4117C153.204 21.5819 154.805 21.3893 156.221 21.279C159.329 21.0598 167.498 21.2292 166.85 25.2775C166.652 26.5131 165.255 27.8996 164.199 28.1367M164.199 28.1367C164.199 28.1367 165.091 28.3506 165.293 28.3958C166.083 28.5845 166.594 29.0375 167.18 29.5889C168.382 30.6883 168.449 32.6514 167.506 33.9282C166.955 34.6809 166.133 35.2063 165.283 35.599L165.27 35.6043C163.479 36.3809 161.555 36.7263 159.62 36.8798C157.636 37.0093 155.179 37.2119 153.329 36.3735C151.805 35.6833 150.737 32.9962 152.835 28.9492M161.021 25.9691C160.905 24.5687 158.556 24.5335 157.819 25.4801C157.503 25.8608 157.367 26.3982 157.384 26.8971C157.428 27.4943 157.191 27.4379 158.572 27.4286C158.816 27.4272 159.067 27.3927 159.311 27.3508C160.099 27.222 161.036 26.8446 161.021 25.981V25.9691ZM161.082 32.4189C162.109 31.6257 161.599 30.4817 160.463 30.1509C159.628 29.8945 158.595 29.8865 157.718 30.1071C157.355 30.2253 157.191 30.0745 157.193 30.8956C157.194 31.3752 157.175 31.9007 157.431 32.3246C158.013 33.2612 160.054 33.1463 161.071 32.4269L161.082 32.4189Z" fill="black" fill-opacity="0.8"/>
+      <path d="M192.785 22.2409C194.914 23.3968 194.529 25.8967 194.291 27.9301C194.215 28.6144 194.032 30.2499 193.998 30.5515C193.861 31.7313 193.582 32.9384 192.93 33.9541C191.528 36.159 188.666 36.919 186.147 36.899C184.136 36.8744 182.063 36.5821 180.304 35.6289C178.832 34.8549 177.945 33.434 177.477 31.9213C176.849 29.848 176.939 27.7667 177.28 25.5426C177.514 24.2432 177.508 22.3751 178.713 21.6198C180.266 20.6811 182.478 20.7941 183.812 22.0649C185.292 23.5609 184.127 25.4622 183.669 27.1296C182.985 29.3139 183.004 31.6383 185.614 31.9041C186.397 31.9665 187.264 31.6988 187.764 31.0869C188.001 30.7946 188.146 30.4492 188.24 30.0798C188.728 28.1407 187.925 26.4407 187.716 24.6052C187.594 23.7031 187.97 22.7903 188.78 22.2914C189.983 21.5547 191.539 21.5514 192.773 22.2356L192.785 22.2423V22.2409Z" fill="black" fill-opacity="0.8"/>
+      <path d="M221.398 34.9121C221.036 35.9477 219.968 36.6585 218.871 36.7768C216.532 37.0153 214.297 35.8494 213.022 33.9428C212.09 32.6155 211.223 31.0756 210.342 29.7457C209.234 28.1713 208.914 29.0223 209.363 30.3994C209.933 32.2256 210.818 35.0097 208.771 36.2254C207.4 36.9515 205.238 36.8572 204.134 35.674C203.622 35.1147 203.482 34.2929 203.474 33.5602C203.439 32.6321 203.489 31.5194 203.488 30.6977C203.478 28.2776 203.47 26.1332 203.779 23.539C204.136 21.2325 207.265 20.9774 209.161 21.469C211.357 22.0184 212.258 23.9223 213.203 25.7718C213.58 26.5171 214.735 28.8582 215.395 28.912C216.071 28.8402 215.832 27.2213 215.714 26.551C215.597 26.0275 215.392 25.4237 215.242 24.8749C215.04 24.2797 214.96 23.555 215.179 22.9949C215.541 21.8722 217.001 21.2338 218.167 21.4564C218.771 21.5633 219.304 21.8563 219.793 22.2004C222.311 23.9104 221.714 29.1312 221.68 31.9572C221.637 32.9138 221.63 33.992 221.401 34.9021L221.398 34.9121H221.398Z" fill="black" fill-opacity="0.8"/>
+      <path d="M249.633 34.9586C249.27 35.9942 248.202 36.7051 247.106 36.8233C244.766 37.0618 242.531 35.8959 241.257 33.9893C240.325 32.662 239.457 31.1222 238.576 29.7922C237.468 28.2178 237.148 29.0688 237.597 30.4459C238.168 32.2721 239.052 35.0562 237.005 36.2719C235.634 36.998 233.472 36.9037 232.368 35.7205C231.856 35.1612 231.716 34.3394 231.708 33.6067C231.673 32.6786 231.723 31.5659 231.723 30.7442C231.712 28.3241 231.704 26.1797 232.013 23.5855C232.371 21.279 235.499 21.0239 237.395 21.5155C239.591 22.0649 240.493 23.9688 241.437 25.8183C241.814 26.5636 242.969 28.9047 243.629 28.9585C244.305 28.8867 244.066 27.2678 243.948 26.5975C243.831 26.074 243.626 25.4702 243.476 24.9215C243.274 24.3262 243.194 23.6015 243.413 23.0414C243.775 21.9188 245.235 21.2803 246.401 21.5029C247.005 21.6098 247.538 21.9028 248.027 22.2469C250.545 23.9569 249.948 29.1777 249.915 32.0037C249.871 32.9603 249.864 34.0385 249.635 34.9486L249.632 34.9586H249.633Z" fill="black" fill-opacity="0.8"/>
+    </svg>
+  </div>
+
+  <!-- Yellow card: full height (bottom:10px padding) -->
+  <div class="success-card" id="success-card">
+    <div class="success-title">DONE!</div>
+
+    <!-- Receipt: animates up from bottom -->
+    <div class="receipt" id="receipt">
+      <div class="receipt-header">
+        <span class="receipt-logo">BUNN</span>
+        <button class="print-btn" aria-label="Print">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+          </svg>
+        </button>
+      </div>
+      <div class="receipt-date" id="receipt-date">16.02.2026 10:35</div>
+      <div class="receipt-section">
+        <div class="receipt-label">MERCHANT</div>
+        <div class="receipt-value">Bunny cafe, Dubai, 01-101,<br>100123456789001</div>
+      </div>
+      <div class="receipt-section">
+        <div class="receipt-label">TRANSACTION</div>
+        <div class="receipt-value">
+          Purchase <span class="success-badge">SUCCESS 🎉</span><br>
+          <span id="receipt-amount">254 AED via 70.6 USDC Base</span>
+        </div>
+      </div>
+      <div class="receipt-section">
+        <div class="receipt-label">PAYER</div>
+        <div class="receipt-value" style="font-size:11px;word-break:break-all;">0x3047Bf5BFCa618e40c35cb3C6D20f38bd41948a0</div>
+      </div>
+      <div class="receipt-section">
+        <div class="receipt-label">OTHER DATA</div>
+        <div class="receipt-value" style="font-size:11px;word-break:break-all;">0xee91c146d26b4494ada18ed704f4e8ad96013c7ec7dd8f14224592c4ee6f1221 via Base</div>
+      </div>
+      <div class="receipt-scallop"></div>
+    </div>
+  </div>
+
+  <!-- Bunny image at bottom of success screen -->
+  <div class="success-bunny" id="success-bunny">
+    <img src="bunny-success.svg" alt="">
+  </div>
+
+  <button class="wait-close" id="s5-close" aria-label="Close">
+    <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="rgba(0,0,0,0.5)"/>
+    </svg>
+  </button>
+
+</div><!-- /s5 -->
 
 <script>
   let digits = '';
@@ -639,8 +836,14 @@
   const s1     = document.getElementById('s1');
   const s2     = document.getElementById('s2');
   const s3     = document.getElementById('s3');
+  const s4     = document.getElementById('s4');
+  const s5     = document.getElementById('s5');
   const waitAmt = document.getElementById('wait-amt');
   const payAmt     = document.getElementById('pay-amt');
+  const s4Aed  = document.getElementById('s4-aed');
+  const s4Usdc = document.getElementById('s4-usdc');
+  const receiptDate   = document.getElementById('receipt-date');
+  const receiptAmount = document.getElementById('receipt-amount');
   let usdcRate  = 3.67;   // fallback: 3.67 AED = 1 USDC
 
   /* ── Generic S-curve notch clip-path (matches Figma Boolean Subtract) ── */
@@ -665,6 +868,12 @@
   }
   function updateS3CardShape() {
     applyCardNotch(document.getElementById('pay-card'), document.getElementById('s3-close'));
+  }
+  function updateS4CardShape() {
+    applyCardNotch(document.querySelector('#s4 .wait-card'), document.getElementById('s4-close'));
+  }
+  function updateS5CardShape() {
+    applyCardNotch(document.getElementById('success-card'), document.getElementById('s5-close'));
   }
 
   /* ── Rate fetching: Coinbase public API, fallback 3.67 ── */
@@ -703,9 +912,42 @@
     updateS3CardShape();
   }
 
+  function showScreen4(aed) {
+    const usdc = (parseFloat(aed) / usdcRate).toFixed(2);
+    s4Aed.textContent = aed + ' AED';
+    s4Usdc.textContent = 'VIA ' + usdc + ' USDC';
+    s3.classList.add('hidden');
+    s4.classList.remove('hidden');
+    updateS4CardShape();
+    // After 3 seconds show success
+    setTimeout(() => showScreen5(aed, usdc), 3000);
+  }
+
+  function showScreen5(aed, usdc) {
+    // Set receipt date/time
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2,'0');
+    const mm = String(now.getMonth()+1).padStart(2,'0');
+    const yyyy = now.getFullYear();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const min = String(now.getMinutes()).padStart(2,'0');
+    receiptDate.textContent = dd + '.' + mm + '.' + yyyy + ' ' + hh + ':' + min;
+    receiptAmount.textContent = aed + ' AED via ' + usdc + ' USDC Base';
+    s4.classList.add('hidden');
+    s5.classList.remove('hidden');
+    updateS5CardShape();
+    // Trigger receipt slide-up animation after a brief delay
+    setTimeout(() => {
+      const rec = document.getElementById('receipt');
+      if (rec) rec.classList.add('slide-in');
+    }, 200);
+  }
+
   function showScreen1() {
     s2.classList.add('hidden');
     s3.classList.add('hidden');
+    s4.classList.add('hidden');
+    s5.classList.add('hidden');
     s1.classList.remove('hidden');
   }
 
@@ -714,6 +956,21 @@
   });
   document.getElementById('s3-close').addEventListener('pointerdown', e => {
     e.preventDefault(); showScreen1();
+  });
+  document.getElementById('nfc-btn').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    const aed = payAmt.textContent.replace(' AED','');
+    showScreen4(aed);
+  });
+  document.getElementById('s4-close').addEventListener('pointerdown', e => {
+    e.preventDefault(); showScreen1();
+  });
+  document.getElementById('s5-close').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    // Reset receipt animation for next time
+    const rec = document.getElementById('receipt');
+    if (rec) rec.classList.remove('slide-in');
+    showScreen1();
   });
 
   /* ── Keypad ── */
@@ -844,6 +1101,8 @@
     if (digits.length) render();
     if (!s2.classList.contains('hidden')) updateWaitCardShape();
     if (!s3.classList.contains('hidden')) updateS3CardShape();
+    if (!s4.classList.contains('hidden')) updateS4CardShape();
+    if (!s5.classList.contains('hidden')) updateS5CardShape();
   });
 </script>
 </body>
