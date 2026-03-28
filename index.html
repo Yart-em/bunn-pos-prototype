@@ -113,9 +113,9 @@
     position:relative;
     overflow:hidden;
   }
-  .coins-vid {
+  .coins-vid, .coins-canvas {
     position:absolute;
-    inset:0;
+    top:0; right:0; bottom:0; left:0;
     width:100%; height:100%;
     object-fit:cover;
     object-position:center bottom;
@@ -723,6 +723,97 @@
     else if (e.key === 'Enter') press('submit');
     else if (e.key === 'Escape') showScreen1();
   });
+
+  /* ── iOS canvas-based video (same approach as bunn.world — bypasses Safari autoplay) ── */
+  (function() {
+    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var video = document.querySelector('.coins-vid');
+    if (!video) return;
+
+    if (isIOS) {
+      /* Swap sources to .mov for iOS HEVC */
+      video.querySelectorAll('source').forEach(function(s) { s.remove(); });
+      var src = document.createElement('source');
+      src.src = 'coins_mobile.mov';
+      src.type = 'video/quicktime';
+      video.appendChild(src);
+
+      /* Create canvas sibling inside .wait-vid-wrap */
+      var wrap = video.closest('.wait-vid-wrap');
+      var canvasEl = document.createElement('canvas');
+      canvasEl.className = 'coins-canvas';
+      wrap.appendChild(canvasEl);
+
+      /* Shrink native video out of sight, keep in DOM for playback engine */
+      video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
+
+      var ctx = canvasEl.getContext('2d');
+      var rafId = null;
+      var vidW = 1920, vidH = 1080;
+
+      function resizeCanvas() {
+        var dpr = window.devicePixelRatio || 1;
+        var cw = wrap.offsetWidth;
+        var ch = wrap.offsetHeight;
+        canvasEl.width  = Math.round(cw * dpr);
+        canvasEl.height = Math.round(ch * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 200); });
+
+      function drawLoop() {
+        if (!video.paused && !video.ended) {
+          var cw = wrap.offsetWidth, ch = wrap.offsetHeight;
+          /* object-fit:cover + object-position:center bottom */
+          var scale = Math.max(cw / vidW, ch / vidH);
+          var dw = vidW * scale, dh = vidH * scale;
+          var dx = (cw - dw) / 2, dy = ch - dh;
+          ctx.clearRect(0, 0, cw, ch);
+          ctx.drawImage(video, dx, dy, dw, dh);
+        }
+        rafId = requestAnimationFrame(drawLoop);
+      }
+
+      function startDrawing() { if (!rafId) rafId = requestAnimationFrame(drawLoop); }
+
+      function startPlayback() {
+        video.muted = true;
+        video.play().then(startDrawing).catch(function() {
+          ['touchstart', 'touchend', 'click'].forEach(function(evt) {
+            document.addEventListener(evt, function handler() {
+              video.muted = true;
+              video.play().then(startDrawing);
+              document.removeEventListener(evt, handler);
+            }, { once: true, passive: true });
+          });
+        });
+      }
+
+      video.addEventListener('loadeddata', startPlayback);
+      video.load();
+
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && video.paused) { video.muted = true; video.play().then(startDrawing); }
+      });
+
+    } else {
+      /* Non-iOS: native autoplay with fallback */
+      video.defaultMuted = true;
+      video.muted = true;
+      video.play().catch(function() {
+        document.addEventListener('touchstart', function handler() {
+          video.play();
+          document.removeEventListener('touchstart', handler);
+        }, { once: true });
+      });
+      document.addEventListener('visibilitychange', function() {
+        if (!document.hidden && video.paused) { video.muted = true; video.play(); }
+      });
+    }
+  })();
 
   render();
   window.addEventListener('resize', () => {
