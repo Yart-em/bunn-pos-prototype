@@ -509,12 +509,18 @@
     background-size:20px 18px;
     margin:16px -22px 0;
   }
-  /* Bunny SVG at bottom of success screen */
+  /* Bunny peeks up from the bottom of the success card.
+     Positioned inside success-card (overflow:hidden clips the bottom).
+     Receipt (z-index:2) slides over the bunny as it rises. */
   .success-bunny {
     position:absolute;
     bottom:0; left:50%;
     transform:translateX(-50%);
-    width:80%;
+    /* bunn-new-character.svg is 1920×1080 landscape.
+       At width:105% of card the height ≈ 105% × card_width × (1080/1920) ≈ 59% of card_width.
+       On a 375px phone: card ~355px wide → bunny ~373px wide × 210px tall.
+       That lets the bunny fill the bottom with its head peeking above the receipt. */
+    width:105%;
     pointer-events:none;
     z-index:1;
   }
@@ -760,7 +766,12 @@
   <div class="success-card" id="success-card">
     <div class="success-title">DONE!</div>
 
-    <!-- Receipt: animates up from bottom -->
+    <!-- Bunny peeks from bottom, behind the receipt -->
+    <div class="success-bunny" id="success-bunny">
+      <img src="bunny-success.svg" alt="">
+    </div>
+
+    <!-- Receipt: animates up from bottom, slides over bunny -->
     <div class="receipt" id="receipt">
       <div class="receipt-header">
         <span class="receipt-logo">BUNN</span>
@@ -792,11 +803,6 @@
       </div>
       <div class="receipt-scallop"></div>
     </div>
-  </div>
-
-  <!-- Bunny image at bottom of success screen -->
-  <div class="success-bunny" id="success-bunny">
-    <img src="bunny-success.svg" alt="">
   </div>
 
   <button class="wait-close" id="s5-close" aria-label="Close">
