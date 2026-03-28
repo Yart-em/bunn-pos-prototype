@@ -514,20 +514,37 @@
     const W  = card.offsetWidth;
     const H  = card.offsetHeight;
     if (!W || !H) return;
-    const nr = btn.offsetWidth / 2;  // notch radius = button radius
-    const cr = 35;                    // standard corner radius
-    // sweep=0 (CCW in SVG) = concave arc curving INTO the card = Figma Boolean Subtract
+
+    // Exact Figma geometry — 3-segment S-curve Boolean Subtract:
+    //   Arc 1: concave quarter-circle, center (W-2sr, 0)
+    //   Arc 2: convex quarter-circle wrapping the button, center (W-sr, sr)
+    //   Corner: quarter-circle to right edge, center (W, 2sr)
+    // sr = button_radius + 2.5px gap (matches Figma ratio 32/29.5)
+    const nr = btn.offsetWidth / 2;           // button radius
+    const sr = nr + 3;                        // S-curve radius (Figma: btn_r+2.5px)
+    const cr = 35;                            // card corner radius
+    const k  = 0.5523;                        // cubic-bezier quarter-circle constant
+
     const p = [
       `M${cr} 0`,
-      `H${W - nr}`,
-      `A${nr} ${nr} 0 0 0 ${W} ${nr}`,
-      `V${H - cr}`,
-      `A${cr} ${cr} 0 0 1 ${W - cr} ${H}`,
+      `H${W - 3*sr}`,
+      // Arc 1 – concave, center (W-2sr, 0): goes from top-edge down-right
+      `C${W-3*sr+k*sr} 0 ${W-2*sr} ${sr*(1-k)} ${W-2*sr} ${sr}`,
+      // Arc 2 – convex, center (W-sr, sr): wraps around the button
+      `C${W-2*sr} ${sr*(1+k)} ${W-sr*(1+k)} ${2*sr} ${W-sr} ${2*sr}`,
+      // Top-right corner, center (W, 2sr), radius sr
+      `C${W-sr*(1-k)} ${2*sr} ${W} ${sr*(3-k)} ${W} ${3*sr}`,
+      // Right edge + bottom-right corner
+      `V${H-cr}`,
+      `A${cr} ${cr} 0 0 1 ${W-cr} ${H}`,
+      // Bottom edge + bottom-left corner
       `H${cr}`,
-      `A${cr} ${cr} 0 0 1 0 ${H - cr}`,
+      `A${cr} ${cr} 0 0 1 0 ${H-cr}`,
+      // Left edge + top-left corner
       `V${cr}`,
       `A${cr} ${cr} 0 0 1 ${cr} 0Z`
     ].join(' ');
+
     card.style.clipPath = `path('${p}')`;
   }
 
