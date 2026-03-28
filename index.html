@@ -64,7 +64,7 @@
   */
   .wait-card {
     position:absolute;
-    top:53px; bottom:0;
+    top:53px; bottom:10px;
     left:2.99%; right:3.23%;
     background:#FFC803;
     /* border-radius handled by JS clip-path (includes notch at top-right) */
@@ -534,10 +534,12 @@
       `C${W-2*sr} ${sr*(1+k)} ${W-sr*(1+k)} ${2*sr} ${W-sr} ${2*sr}`,
       // Top-right corner, center (W, 2sr), radius sr
       `C${W-sr*(1-k)} ${2*sr} ${W} ${sr*(3-k)} ${W} ${3*sr}`,
-      // Right edge (square bottom-right — card flush with screen bottom)
-      `V${H}`,
-      // Bottom edge (square corners)
-      `H0`,
+      // Right edge + bottom-right corner
+      `V${H-cr}`,
+      `A${cr} ${cr} 0 0 1 ${W-cr} ${H}`,
+      // Bottom edge + bottom-left corner
+      `H${cr}`,
+      `A${cr} ${cr} 0 0 1 0 ${H-cr}`,
       // Left edge + top-left corner
       `V${cr}`,
       `A${cr} ${cr} 0 0 1 ${cr} 0Z`
