@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BUNN POS</title>
+<style>
+  @font-face {
+    font-family: 'Engravers Gothic';
+    src: url('EngraversGothic-Bold.woff2') format('woff2');
+    font-weight: 700; font-style: normal;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none; }
+
+  html, body {
+    width:100%; height:100%; height:100dvh;
+    overflow:hidden;
+    font-family:'Engravers Gothic',sans-serif;
+    background:#fff;
+    touch-action:manipulation;
+  }
+
+  /* Full-screen container, fills any width up to 600px */
+  .pos {
+    width:100%; height:100%;
+    max-width:600px; margin:0 auto;
+    display:flex; flex-direction:column;
+    overflow:hidden;
+    background:#fff;
+    position:relative;
+  }
+
+  /* ── Screen management ── */
+  .screen {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    background:#fff;
+  }
+  .screen.hidden { display:none; }
+
+  /* ── Screen 2: Waiting for payment ── */
+  /*
+    Logo: same calculation as screen 1.
+    Screen-1 logo top = 6.3% of top-zone height = 6.3% × (pos_width × 334/402) = pos_width × 5.22%
+    Since pos_width ≈ 100vw on phones: top ≈ 5.22vw  (same as screen 1 at any phone width)
+  */
+  /*
+    Logo top: screen-1 positions it at 6.3% of top-zone height = 6.3% × (pos_width × 334/402).
+    At 402px: 21px. At 375px: 19.6px. At 414px: 21.6px.
+    Using 21px covers the full phone size range accurately.
+  */
+  .s2-logo {
+    position:absolute;
+    left:50%; top:21px;
+    transform:translateX(-50%);
+    width:24.9%; z-index:2;
+  }
+  .s2-logo svg { display:block; width:100%; height:auto; }
+
+  /*
+    Card: Figma Y=53 top, Y=779 bottom (874-779=95px), user says bottom=50px.
+    left=12/402=2.99%, right=(402-389)/402=3.23%
+  */
+  .wait-card {
+    position:absolute;
+    top:53px; bottom:50px;
+    left:2.99%; right:3.23%;
+    background:#FFC803;
+    border-radius:35px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+  }
+
+  /*
+    Notch mask — white circle that sits in front of the card corner, behind the X button.
+    This recreates the same "deduction" near the nav button as on screen 1.
+    Same size & position as .wait-close so it perfectly fills the notch opening.
+  */
+  .notch-mask {
+    position:absolute;
+    top:53px; right:3.23%;
+    width:clamp(44px,14.7%,68px); aspect-ratio:1;
+    border-radius:50%;
+    background:#fff;
+    z-index:9; pointer-events:none;
+  }
+
+  /* Text section at top of card */
+  .wait-top {
+    flex-shrink:0;
+    padding:9% 8% 3%;
+    text-align:center;
+  }
+  .checking-lbl {
+    font-weight:700;
+    font-size:clamp(10px,3.7vw,18px);
+    letter-spacing:.12em;
+    color:rgba(0,0,0,.65);
+    margin-bottom:3%;
+  }
+  .wait-amount {
+    font-weight:700;
+    font-size:clamp(26px,11.5vw,56px);
+    color:rgba(0,0,0,.85);
+    letter-spacing:.03em;
+    line-height:1.1;
+  }
+  .wait-via {
+    font-weight:700;
+    font-size:clamp(20px,9.5vw,46px);
+    color:rgba(0,0,0,.85);
+    letter-spacing:.12em;
+    line-height:1.2;
+    margin-top:1%;
+  }
+
+  /* Video fills remaining space between text and footer, cropped by card overflow:hidden */
+  .wait-vid-wrap {
+    flex:1;
+    position:relative;
+    overflow:hidden;
+  }
+  .coins-vid {
+    position:absolute;
+    inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    object-position:30% 100%; /* show lower-left portion — the coin wave sweep area */
+  }
+
+  /* Footer: NFC icon + instruction text */
+  .wait-footer {
+    flex-shrink:0;
+    padding:4% 10% 6%;
+    display:flex; flex-direction:column;
+    align-items:center; gap:6px;
+    text-align:center;
+  }
+  .wait-footer svg { width:28px; height:24px; opacity:.7; }
+  .wait-hint {
+    font-family:system-ui,-apple-system,sans-serif;
+    font-weight:400;
+    font-size:clamp(11px,3.4vw,17px);
+    color:rgba(0,0,0,.65);
+    line-height:1.45;
+  }
+
+  /* X close button — outside card div so it isn't clipped by overflow:hidden */
+  .wait-close {
+    position:absolute;
+    top:53px; right:3.23%;
+    width:clamp(44px,14.7%,68px); aspect-ratio:1;
+    border-radius:50%;
+    background:#272727;
+    border:none; outline:none; cursor:pointer;
+    z-index:10;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 4px rgba(0,0,0,.08),0 16px 32px rgba(0,0,0,.12);
+    transition:transform .1s,box-shadow .1s;
+  }
+  .wait-close:active { transform:scale(.92); box-shadow:0 2px 4px rgba(0,0,0,.15); }
+  .wait-close svg { width:45%; height:45%; }
+
+  /*
+    Top zone: Figma 402×334 coordinate space.
+    aspect-ratio creates a REAL height so absolute children's top/left %
+    values resolve correctly (padding-bottom trick gives height=0 for % calc).
+    height = width × 334/402 = 83.08% of width.
+  */
+  .top-zone {
+    position:relative;
+    flex-shrink:0;
+    aspect-ratio: 402 / 334;
+    overflow:visible;
+  }
+
+  /*
+    Card shape: in Figma at x=15–390, y=52–334 within 402×334 frame.
+    left  = 15/402  = 3.73%  of top-zone width
+    right = 12/402  = 2.99%  of top-zone width
+    top   = 52/334  = 15.57% of top-zone HEIGHT (= 52/402 of width in absolute px)
+    width = 375/402 = 93.28% of top-zone width  → height auto fills to bottom
+  */
+  .card-shape {
+    position:absolute;
+    left:3.73%; right:2.99%;
+    top:15.57%; /* % of containing-block height */
+    width:93.28%; height:auto;
+    display:block;
+    filter:drop-shadow(0 4px 4px rgba(0,0,0,.06)) drop-shadow(0 16px 32px rgba(0,0,0,.10));
+  }
+
+  /*
+    BUNN logo: Figma x=150, y=21, w=100, h=16  (in 402×334 frame).
+    Center x = (150+50)/402 = 200/402 = 49.8% → use left:50% + translateX(-50%) to truly center.
+    top  = 21/334 = 6.3%   of top-zone height
+    width= 100/402 = 24.9% of top-zone width
+  */
+  .logo {
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    top:6.3%;
+    width:24.9%;
+    z-index:2;
+  }
+  .logo svg { display:block; width:100%; height:auto; }
+
+  /*
+    Nav buttons: Figma circles cx/cy/r in 402×334 frame:
+      History:  cx=232.5  cy=80.5  r=29.5  → top-edge y=51
+      Settings: cx=295.5  cy=81.5  r=29.5  → top-edge y=52
+      Close:    cx=359.5  cy=81.5  r=29.5  → right-edge x=389
+    Group:
+      right = (402−389)/402 = 3.2%  (Close button right edge)
+      top   = 51/334        = 15.3% (History button top edge)
+      width = (389−203)/402 = 46.3% (History left to Close right)
+  */
+  .nav-btns {
+    position:absolute;
+    right:3.2%;
+    top:15.3%;
+    width:46.3%;
+    display:flex;
+    gap:2.2%;
+    z-index:2;
+  }
+
+  .icon-btn {
+    flex:1; aspect-ratio:1;
+    border-radius:50%; background:#272727;
+    border:none; outline:none;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 4px rgba(0,0,0,.08),0 16px 32px rgba(0,0,0,.12);
+    transition:transform .1s,box-shadow .1s;
+  }
+  .icon-btn:active { transform:scale(.92); box-shadow:0 2px 4px rgba(0,0,0,.15); }
+  .icon-btn svg { width:55%; height:55%; }
+
+  /*
+    Card body (SUM / amount / AED): below notch.
+    Notch bottom in Figma: y=116 → top = 116/334 = 34.73% of top-zone height
+    left/right same as card-shape.
+  */
+  .card-body {
+    position:absolute;
+    left:3.73%; right:2.99%;
+    top:34.73%; bottom:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start;
+    padding-left:16%; padding-right:16%; /* 60/375 ≈ 16% side padding */
+    /* SUM TO CHARGE sits at y=152 in Figma (402px frame), notch at y=116 → 36px down → 36/402≈9% */
+    padding-top:9%; padding-bottom:4%;
+  }
+
+  /* Amount + AED float together, centered in the remaining space below SUM label */
+  .amount-group {
+    flex:1; width:100%;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+  }
+
+  .sum-label {
+    font-weight:700;
+    /* Figma: cap-height 13px in 402px frame → font ~18px → 18/402 = 4.48vw */
+    font-size:clamp(14px, 4.48vw, 22px);
+    color:#272727; letter-spacing:.1em; text-align:center;
+    margin-bottom:3%;
+  }
+
+  .amount-wrap {
+    width:100%; overflow:hidden;
+    display:flex; align-items:center; justify-content:center;
+    padding:1% 0;
+  }
+
+  #amt {
+    font-weight:700;
+    font-size:70px;
+    color:rgba(0,0,0,.8);
+    letter-spacing:.02em;
+    white-space:nowrap; line-height:1.1; text-align:center;
+  }
+
+  .cur {
+    display:inline-block; width:clamp(12px,4vw,22px); height:3px;
+    background:rgba(0,0,0,.8); vertical-align:middle; margin-bottom:3px;
+    animation:blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .currency {
+    font-weight:700; font-size:70px;
+    color:rgba(0,0,0,.8); letter-spacing:.1em; text-align:center;
+  }
+
+  /* Numpad: takes remaining height */
+  .pad {
+    flex:1; min-height:0;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(4,1fr);
+    gap:clamp(5px,2vw,9px);
+    padding:clamp(4px,2vw,8px) 3.73% clamp(8px,3vw,14px);
+  }
+  .k {
+    border-radius:20px; background:#272727;
+    border:none; outline:none;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 4px rgba(0,0,0,.08),0 16px 32px rgba(0,0,0,.12);
+    transition:transform .1s,box-shadow .1s,background .1s;
+  }
+  /* Number & backspace: press → yellow (#FFC803) — use JS class, :active unreliable after preventDefault */
+  .k.pressed { transform:scale(.93); box-shadow:0 2px 4px rgba(0,0,0,.15); background:#FFC803; }
+  .k span {
+    font-family:'Engravers Gothic',sans-serif; font-weight:700;
+    font-size:clamp(20px,7vw,36px); color:#fff;
+    letter-spacing:.02em; pointer-events:none;
+  }
+  /* When yellow bg on press, make text dark */
+  .k.pressed span { color:#272727; }
+  .k svg { pointer-events:none; }
+  /* Arrow button: press → black */
+  .k.pink { background:#FF9BAC; }
+  .k.pink.pressed { background:#272727; }
+  .k.pink svg { width:36%; height:36%; }
+  /* Arrow icon turns white on black bg */
+  .k.pink svg path { transition:fill .1s; }
+  .k.pink.pressed svg path { fill:#FF9BAC; }
+  .k.bksp svg { width:30%; height:30%; }
+  /* Backspace icon turns dark on yellow bg */
+  .k.bksp.pressed svg path { fill:#272727; }
+</style>
+</head>
+<body>
+<div class="pos">
+
+<!-- ══ Screen 1: Amount entry ══ -->
+<div class="screen" id="s1">
+
+  <!-- ── Top zone: Figma 402×334 proportional layout ── -->
+  <div class="top-zone">
+
+    <!-- Card shape (exact Figma path, translated to 0,0) -->
+    <svg class="card-shape" viewBox="0 0 375 282" xmlns="http://www.w3.org/2000/svg">
+      <path d="M150 0C167.673 0 182 14.327 182 32C182 49.673 196.327 64 214 64H340C359.33 64 375 79.67 375 99V247C375 266.33 359.33 282 340 282H35C15.67 282 0 266.33 0 247V35C0 15.67 15.67 0 35 0H150Z" fill="#FFC803"/>
+    </svg>
+
+    <!-- BUNN logo — exact Figma vector, viewBox references original coords -->
+    <div class="logo">
+      <svg viewBox="149 20 102 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M152.836 28.9498C152.836 28.9498 149.568 28.9797 150.049 25.2416C150.184 24.19 151.11 23.0281 152.032 22.4117C153.204 21.5819 154.805 21.3893 156.221 21.279C159.329 21.0598 167.498 21.2292 166.85 25.2775C166.652 26.5131 165.255 27.8996 164.199 28.1367M164.199 28.1367C164.199 28.1367 165.091 28.3506 165.293 28.3958C166.083 28.5845 166.594 29.0375 167.18 29.5889C168.382 30.6883 168.449 32.6514 167.506 33.9282C166.955 34.6809 166.133 35.2063 165.283 35.599L165.27 35.6043C163.479 36.3809 161.555 36.7263 159.62 36.8798C157.636 37.0093 155.179 37.2119 153.329 36.3735C151.805 35.6833 150.737 32.9962 152.835 28.9492M161.021 25.9691C160.905 24.5687 158.556 24.5335 157.819 25.4801C157.503 25.8608 157.367 26.3982 157.384 26.8971C157.428 27.4943 157.191 27.4379 158.572 27.4286C158.816 27.4272 159.067 27.3927 159.311 27.3508C160.099 27.222 161.036 26.8446 161.021 25.981V25.9691ZM161.082 32.4189C162.109 31.6257 161.599 30.4817 160.463 30.1509C159.628 29.8945 158.595 29.8865 157.718 30.1071C157.355 30.2253 157.191 30.0745 157.193 30.8956C157.194 31.3752 157.175 31.9007 157.431 32.3246C158.013 33.2612 160.054 33.1463 161.071 32.4269L161.082 32.4189Z" fill="black" fill-opacity="0.8"/>
+        <path d="M192.785 22.2409C194.914 23.3968 194.529 25.8967 194.291 27.9301C194.215 28.6144 194.032 30.2499 193.998 30.5515C193.861 31.7313 193.582 32.9384 192.93 33.9541C191.528 36.159 188.666 36.919 186.147 36.899C184.136 36.8744 182.063 36.5821 180.304 35.6289C178.832 34.8549 177.945 33.434 177.477 31.9213C176.849 29.848 176.939 27.7667 177.28 25.5426C177.514 24.2432 177.508 22.3751 178.713 21.6198C180.266 20.6811 182.478 20.7941 183.812 22.0649C185.292 23.5609 184.127 25.4622 183.669 27.1296C182.985 29.3139 183.004 31.6383 185.614 31.9041C186.397 31.9665 187.264 31.6988 187.764 31.0869C188.001 30.7946 188.146 30.4492 188.24 30.0798C188.728 28.1407 187.925 26.4407 187.716 24.6052C187.594 23.7031 187.97 22.7903 188.78 22.2914C189.983 21.5547 191.539 21.5514 192.773 22.2356L192.785 22.2423V22.2409Z" fill="black" fill-opacity="0.8"/>
+        <path d="M221.398 34.9121C221.036 35.9477 219.968 36.6585 218.871 36.7768C216.532 37.0153 214.297 35.8494 213.022 33.9428C212.09 32.6155 211.223 31.0756 210.342 29.7457C209.234 28.1713 208.914 29.0223 209.363 30.3994C209.933 32.2256 210.818 35.0097 208.771 36.2254C207.4 36.9515 205.238 36.8572 204.134 35.674C203.622 35.1147 203.482 34.2929 203.474 33.5602C203.439 32.6321 203.489 31.5194 203.488 30.6977C203.478 28.2776 203.47 26.1332 203.779 23.539C204.136 21.2325 207.265 20.9774 209.161 21.469C211.357 22.0184 212.258 23.9223 213.203 25.7718C213.58 26.5171 214.735 28.8582 215.395 28.912C216.071 28.8402 215.832 27.2213 215.714 26.551C215.597 26.0275 215.392 25.4237 215.242 24.8749C215.04 24.2797 214.96 23.555 215.179 22.9949C215.541 21.8722 217.001 21.2338 218.167 21.4564C218.771 21.5633 219.304 21.8563 219.793 22.2004C222.311 23.9104 221.714 29.1312 221.68 31.9572C221.637 32.9138 221.63 33.992 221.401 34.9021L221.398 34.9121H221.398Z" fill="black" fill-opacity="0.8"/>
+        <path d="M249.633 34.9586C249.27 35.9942 248.202 36.7051 247.106 36.8233C244.766 37.0618 242.531 35.8959 241.257 33.9893C240.325 32.662 239.457 31.1222 238.576 29.7922C237.468 28.2178 237.148 29.0688 237.597 30.4459C238.168 32.2721 239.052 35.0562 237.005 36.2719C235.634 36.998 233.472 36.9037 232.368 35.7205C231.856 35.1612 231.716 34.3394 231.708 33.6067C231.673 32.6786 231.723 31.5659 231.723 30.7442C231.712 28.3241 231.704 26.1797 232.013 23.5855C232.371 21.279 235.499 21.0239 237.395 21.5155C239.591 22.0649 240.493 23.9688 241.437 25.8183C241.814 26.5636 242.969 28.9047 243.629 28.9585C244.305 28.8867 244.066 27.2678 243.948 26.5975C243.831 26.074 243.626 25.4702 243.476 24.9215C243.274 24.3262 243.194 23.6015 243.413 23.0414C243.775 21.9188 245.235 21.2803 246.401 21.5029C247.005 21.6098 247.538 21.9028 248.027 22.2469C250.545 23.9569 249.948 29.1777 249.915 32.0037C249.871 32.9603 249.864 34.0385 249.635 34.9486L249.632 34.9586H249.633Z" fill="black" fill-opacity="0.8"/>
+      </svg>
+    </div>
+
+    <!-- Nav buttons: positioned in the notch area (top-right white space) -->
+    <div class="nav-btns">
+      <button class="icon-btn" aria-label="History">
+        <svg viewBox="218 67 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M234.125 74.5V80.3866L239.002 83.3211C239.248 83.469 239.425 83.7088 239.495 83.9877C239.564 84.2665 239.52 84.5616 239.372 84.8079C239.225 85.0543 238.986 85.2318 238.708 85.3014C238.43 85.371 238.135 85.3269 237.89 85.179L232.488 81.929C232.328 81.8327 232.196 81.6965 232.104 81.5337C232.012 81.3709 231.964 81.187 231.964 81V74.5C231.964 74.2127 232.078 73.9372 232.28 73.734C232.483 73.5308 232.758 73.4167 233.044 73.4167C233.331 73.4167 233.606 73.5308 233.808 73.734C234.011 73.9372 234.125 74.2127 234.125 74.5ZM233.044 68C231.34 67.9958 229.652 68.3305 228.078 68.9848C226.503 69.6391 225.074 70.6001 223.872 71.812C222.891 72.8087 222.018 73.7674 221.161 74.7709V72.3334C221.161 72.0461 221.047 71.7705 220.844 71.5673C220.642 71.3642 220.367 71.25 220.08 71.25C219.794 71.25 219.519 71.3642 219.316 71.5673C219.114 71.7705 219 72.0461 219 72.3334V77.75C219 78.0373 219.114 78.3129 219.316 78.5161C219.519 78.7192 219.794 78.8334 220.08 78.8334H225.482C225.769 78.8334 226.043 78.7192 226.246 78.5161C226.449 78.3129 226.562 78.0373 226.562 77.75C226.562 77.4627 226.449 77.1872 226.246 76.984C226.043 76.7808 225.769 76.6667 225.482 76.6667H222.376C223.342 75.5265 224.303 74.4526 225.4 73.3395C226.901 71.8339 228.812 70.8053 230.893 70.3824C232.974 69.9594 235.133 70.1609 237.101 70.9614C239.068 71.762 240.757 73.1263 241.956 74.8838C243.155 76.6413 243.81 78.7141 243.841 80.8431C243.872 82.9722 243.276 85.0631 242.129 86.8547C240.981 88.6462 239.332 90.0589 237.389 90.9162C235.445 91.7735 233.292 92.0375 231.2 91.6751C229.108 91.3127 227.168 90.34 225.624 88.8786C225.521 88.7807 225.399 88.7043 225.267 88.6535C225.134 88.6028 224.992 88.5787 224.851 88.5827C224.709 88.5868 224.569 88.6188 224.439 88.677C224.31 88.7352 224.193 88.8184 224.095 88.9219C223.998 89.0254 223.921 89.1471 223.871 89.2802C223.82 89.4132 223.796 89.555 223.8 89.6973C223.804 89.8397 223.836 89.9798 223.894 90.1098C223.952 90.2398 224.035 90.357 224.138 90.4548C225.677 91.9109 227.548 92.9672 229.587 93.5316C231.627 94.096 233.773 94.1512 235.839 93.6926C237.904 93.2339 239.827 92.2752 241.438 90.9002C243.049 89.5252 244.3 87.7757 245.082 85.8043C245.864 83.833 246.153 81.6997 245.924 79.5906C245.694 77.4815 244.954 75.4608 243.766 73.7048C242.579 71.9488 240.981 70.5108 239.112 69.5164C237.243 68.522 235.16 68.0014 233.044 68Z" fill="white"/>
+        </svg>
+      </button>
+      <button class="icon-btn" aria-label="Settings">
+        <svg viewBox="280 66 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M295.501 75.2704C294.272 75.2704 293.071 75.6358 292.049 76.3203C291.027 77.0048 290.231 77.9777 289.76 79.116C289.29 80.2543 289.167 81.5068 289.407 82.7152C289.647 83.9236 290.238 85.0336 291.107 85.9048C291.976 86.776 293.084 87.3693 294.289 87.6097C295.494 87.85 296.744 87.7267 297.879 87.2552C299.015 86.7837 299.985 85.9852 300.668 84.9608C301.351 83.9364 301.715 82.732 301.715 81.4999C301.713 79.8483 301.058 78.2648 299.893 77.0969C298.728 75.929 297.149 75.2721 295.501 75.2704ZM295.501 85.6529C294.682 85.6529 293.881 85.4093 293.2 84.953C292.519 84.4966 291.988 83.848 291.674 83.0892C291.36 82.3303 291.278 81.4953 291.438 80.6897C291.598 79.8841 291.993 79.1441 292.572 78.5633C293.151 77.9825 293.889 77.5869 294.693 77.4267C295.497 77.2665 296.33 77.3487 297.087 77.663C297.843 77.9774 298.49 78.5097 298.946 79.1926C299.401 79.8756 299.644 80.6785 299.644 81.4999C299.644 82.6013 299.207 83.6577 298.43 84.4365C297.654 85.2153 296.6 85.6529 295.501 85.6529ZM309.734 78.8017C309.705 78.6555 309.645 78.5173 309.558 78.3963C309.471 78.2754 309.359 78.1747 309.23 78.1009L305.368 75.8947L305.353 71.5314C305.352 71.3812 305.319 71.2328 305.256 71.0965C305.193 70.9603 305.101 70.8395 304.986 70.7424C303.586 69.5545 301.972 68.6441 300.233 68.0598C300.096 68.0133 299.951 67.9961 299.807 68.0093C299.663 68.0225 299.523 68.0658 299.397 68.1364L295.501 70.3193L291.602 68.1325C291.476 68.0615 291.336 68.0178 291.191 68.0044C291.047 67.991 290.902 68.0081 290.764 68.0546C289.026 68.6432 287.415 69.557 286.016 70.7475C285.902 70.8445 285.81 70.9652 285.747 71.1011C285.683 71.2371 285.65 71.3853 285.65 71.5353L285.63 75.9024L281.769 78.1087C281.639 78.1825 281.528 78.2832 281.441 78.4041C281.354 78.5251 281.294 78.6633 281.265 78.8095C280.912 80.59 280.912 82.4228 281.265 84.2032C281.294 84.3494 281.354 84.4877 281.441 84.6086C281.528 84.7296 281.639 84.8303 281.769 84.904L285.63 87.1103L285.646 91.4736C285.646 91.6238 285.679 91.7722 285.743 91.9084C285.806 92.0447 285.898 92.1655 286.012 92.2626C287.413 93.4505 289.026 94.3608 290.766 94.9452C290.903 94.9917 291.048 95.0089 291.192 94.9957C291.336 94.9825 291.476 94.9392 291.602 94.8686L295.501 92.6805L299.4 94.8673C299.555 94.9535 299.729 94.9982 299.905 94.9971C300.018 94.9971 300.131 94.9787 300.238 94.9426C301.976 94.3547 303.587 93.4418 304.986 92.2522C305.101 92.1553 305.193 92.0346 305.256 91.8986C305.319 91.7626 305.352 91.6145 305.353 91.4645L305.372 87.0973L309.234 84.8911C309.363 84.8173 309.475 84.7166 309.562 84.5956C309.649 84.4747 309.709 84.3365 309.737 84.1902C310.089 82.4112 310.088 80.5803 309.734 78.8017ZM307.792 83.3324L304.093 85.4413C303.931 85.5337 303.797 85.6682 303.705 85.8307C303.63 85.9605 303.551 86.098 303.47 86.2278C303.368 86.3915 303.313 86.5808 303.313 86.7742L303.293 90.9596C302.299 91.7423 301.191 92.3681 300.009 92.8155L296.278 90.7312C296.123 90.6453 295.949 90.6006 295.772 90.6014H295.747C295.591 90.6014 295.433 90.6014 295.276 90.6014C295.091 90.5968 294.908 90.6416 294.745 90.7312L291.012 92.8207C289.827 92.3767 288.716 91.754 287.718 90.9739L287.704 86.795C287.704 86.6012 287.649 86.4115 287.546 86.2473C287.466 86.1175 287.387 85.9877 287.313 85.8501C287.222 85.6852 287.088 85.548 286.925 85.453L283.222 83.3389C283.031 82.1239 283.031 80.8863 283.222 79.6713L286.914 77.5584C287.077 77.4661 287.211 77.3316 287.303 77.1691C287.378 77.0393 287.457 76.9018 287.537 76.772C287.64 76.6083 287.695 76.419 287.695 76.2256L287.715 72.0402C288.709 71.2575 289.816 70.6317 290.999 70.1843L294.724 72.2686C294.887 72.3587 295.07 72.4035 295.255 72.3984C295.412 72.3984 295.57 72.3984 295.726 72.3984C295.912 72.403 296.095 72.3582 296.257 72.2686L299.991 70.1791C301.176 70.6231 302.286 71.2458 303.284 72.0259L303.298 76.2048C303.299 76.3986 303.354 76.5883 303.456 76.7525C303.536 76.8823 303.615 77.0121 303.689 77.1496C303.781 77.3146 303.915 77.4518 304.078 77.5468L307.78 79.6609C307.974 80.8768 307.976 82.1158 307.787 83.3324H307.792Z" fill="white"/>
+        </svg>
+      </button>
+      <button class="icon-btn" aria-label="Close">
+        <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="white"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Card body: SUM label, amount, currency -->
+    <div class="card-body">
+      <div class="sum-label">SUM TO CHARGE</div>
+      <div class="amount-group">
+        <div class="amount-wrap">
+          <div id="amt">.<span class="cur"></span></div>
+        </div>
+        <div class="currency">AED</div>
+      </div>
+    </div>
+
+  </div><!-- /top-zone -->
+
+  <!-- ── Numpad ── -->
+  <div class="pad" id="pad">
+    <button class="k" data-key="1"><span>1</span></button>
+    <button class="k" data-key="2"><span>2</span></button>
+    <button class="k" data-key="3"><span>3</span></button>
+    <button class="k" data-key="4"><span>4</span></button>
+    <button class="k" data-key="5"><span>5</span></button>
+    <button class="k" data-key="6"><span>6</span></button>
+    <button class="k" data-key="7"><span>7</span></button>
+    <button class="k" data-key="8"><span>8</span></button>
+    <button class="k" data-key="9"><span>9</span></button>
+    <button class="k" data-key="0"><span>0</span></button>
+    <!-- Backspace -->
+    <button class="k bksp" data-key="backspace">
+      <svg viewBox="185 721 31 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M213.438 722H193.276C192.898 722.001 192.527 722.099 192.199 722.285C191.87 722.472 191.595 722.739 191.4 723.062L185.156 733.468C185.054 733.638 185 733.833 185 734.031C185 734.23 185.054 734.424 185.156 734.595L191.4 745C191.595 745.323 191.87 745.591 192.199 745.777C192.527 745.963 192.898 746.061 193.276 746.062H213.438C214.018 746.062 214.574 745.832 214.985 745.422C215.395 745.012 215.625 744.455 215.625 743.875V724.188C215.625 723.607 215.395 723.051 214.985 722.641C214.574 722.23 214.018 722 213.438 722ZM213.438 743.875H193.276L187.37 734.031L193.276 724.188H213.438V743.875ZM198.445 736.539L200.954 734.031L198.445 731.524C198.24 731.319 198.125 731.04 198.125 730.75C198.125 730.46 198.24 730.181 198.445 729.976C198.65 729.771 198.929 729.656 199.219 729.656C199.509 729.656 199.788 729.771 199.993 729.976L202.5 732.485L205.008 729.976C205.109 729.875 205.23 729.794 205.363 729.739C205.496 729.684 205.638 729.656 205.782 729.656C205.925 729.656 206.068 729.684 206.2 729.739C206.333 729.794 206.454 729.875 206.555 729.976C206.657 730.078 206.738 730.198 206.793 730.331C206.848 730.464 206.876 730.606 206.876 730.75C206.876 730.894 206.848 731.036 206.793 731.169C206.738 731.302 206.657 731.422 206.555 731.524L204.047 734.031L206.555 736.539C206.657 736.64 206.738 736.761 206.793 736.894C206.848 737.026 206.876 737.169 206.876 737.312C206.876 737.456 206.848 737.599 206.793 737.731C206.738 737.864 206.657 737.985 206.555 738.086C206.454 738.188 206.333 738.269 206.2 738.324C206.068 738.379 205.925 738.407 205.782 738.407C205.638 738.407 205.496 738.379 205.363 738.324C205.23 738.269 205.109 738.188 205.008 738.086L202.5 735.578L199.993 738.086C199.891 738.188 199.771 738.269 199.638 738.324C199.505 738.379 199.363 738.407 199.219 738.407C199.075 738.407 198.933 738.379 198.8 738.324C198.668 738.269 198.547 738.188 198.445 738.086C198.344 737.985 198.263 737.864 198.208 737.731C198.153 737.599 198.125 737.456 198.125 737.312C198.125 737.169 198.153 737.026 198.208 736.894C198.263 736.761 198.344 736.64 198.445 736.539Z" fill="white"/>
+      </svg>
+    </button>
+    <!-- Submit arrow -->
+    <button class="k pink" data-key="submit">
+      <svg viewBox="289 716 37 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M325.089 733.524L312.231 746.381C311.829 746.784 311.283 747.01 310.713 747.01C310.144 747.01 309.598 746.784 309.195 746.381C308.793 745.979 308.567 745.433 308.567 744.864C308.567 744.294 308.793 743.748 309.195 743.346L318.394 734.151H292.143C291.575 734.151 291.03 733.925 290.628 733.523C290.226 733.121 290 732.576 290 732.008C290 731.439 290.226 730.894 290.628 730.493C291.03 730.091 291.575 729.865 292.143 729.865H318.394L309.199 720.665C308.796 720.262 308.57 719.716 308.57 719.147C308.57 718.577 308.796 718.031 309.199 717.629C309.601 717.226 310.147 717 310.717 717C311.286 717 311.832 717.226 312.235 717.629L325.092 730.486C325.292 730.686 325.451 730.923 325.559 731.183C325.667 731.444 325.722 731.724 325.722 732.006C325.721 732.288 325.665 732.568 325.557 732.828C325.448 733.089 325.289 733.325 325.089 733.524Z" fill="#272727"/>
+      </svg>
+    </button>
+  </div>
+
+</div><!-- /s1 -->
+
+<!-- ══ Screen 2: Waiting for payment ══ -->
+<div class="screen hidden" id="s2">
+
+  <!-- BUNN logo (same SVG as screen 1) -->
+  <div class="s2-logo">
+    <svg viewBox="149 20 102 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M152.836 28.9498C152.836 28.9498 149.568 28.9797 150.049 25.2416C150.184 24.19 151.11 23.0281 152.032 22.4117C153.204 21.5819 154.805 21.3893 156.221 21.279C159.329 21.0598 167.498 21.2292 166.85 25.2775C166.652 26.5131 165.255 27.8996 164.199 28.1367M164.199 28.1367C164.199 28.1367 165.091 28.3506 165.293 28.3958C166.083 28.5845 166.594 29.0375 167.18 29.5889C168.382 30.6883 168.449 32.6514 167.506 33.9282C166.955 34.6809 166.133 35.2063 165.283 35.599L165.27 35.6043C163.479 36.3809 161.555 36.7263 159.62 36.8798C157.636 37.0093 155.179 37.2119 153.329 36.3735C151.805 35.6833 150.737 32.9962 152.835 28.9492M161.021 25.9691C160.905 24.5687 158.556 24.5335 157.819 25.4801C157.503 25.8608 157.367 26.3982 157.384 26.8971C157.428 27.4943 157.191 27.4379 158.572 27.4286C158.816 27.4272 159.067 27.3927 159.311 27.3508C160.099 27.222 161.036 26.8446 161.021 25.981V25.9691ZM161.082 32.4189C162.109 31.6257 161.599 30.4817 160.463 30.1509C159.628 29.8945 158.595 29.8865 157.718 30.1071C157.355 30.2253 157.191 30.0745 157.193 30.8956C157.194 31.3752 157.175 31.9007 157.431 32.3246C158.013 33.2612 160.054 33.1463 161.071 32.4269L161.082 32.4189Z" fill="black" fill-opacity="0.8"/>
+      <path d="M192.785 22.2409C194.914 23.3968 194.529 25.8967 194.291 27.9301C194.215 28.6144 194.032 30.2499 193.998 30.5515C193.861 31.7313 193.582 32.9384 192.93 33.9541C191.528 36.159 188.666 36.919 186.147 36.899C184.136 36.8744 182.063 36.5821 180.304 35.6289C178.832 34.8549 177.945 33.434 177.477 31.9213C176.849 29.848 176.939 27.7667 177.28 25.5426C177.514 24.2432 177.508 22.3751 178.713 21.6198C180.266 20.6811 182.478 20.7941 183.812 22.0649C185.292 23.5609 184.127 25.4622 183.669 27.1296C182.985 29.3139 183.004 31.6383 185.614 31.9041C186.397 31.9665 187.264 31.6988 187.764 31.0869C188.001 30.7946 188.146 30.4492 188.24 30.0798C188.728 28.1407 187.925 26.4407 187.716 24.6052C187.594 23.7031 187.97 22.7903 188.78 22.2914C189.983 21.5547 191.539 21.5514 192.773 22.2356L192.785 22.2423V22.2409Z" fill="black" fill-opacity="0.8"/>
+      <path d="M221.398 34.9121C221.036 35.9477 219.968 36.6585 218.871 36.7768C216.532 37.0153 214.297 35.8494 213.022 33.9428C212.09 32.6155 211.223 31.0756 210.342 29.7457C209.234 28.1713 208.914 29.0223 209.363 30.3994C209.933 32.2256 210.818 35.0097 208.771 36.2254C207.4 36.9515 205.238 36.8572 204.134 35.674C203.622 35.1147 203.482 34.2929 203.474 33.5602C203.439 32.6321 203.489 31.5194 203.488 30.6977C203.478 28.2776 203.47 26.1332 203.779 23.539C204.136 21.2325 207.265 20.9774 209.161 21.469C211.357 22.0184 212.258 23.9223 213.203 25.7718C213.58 26.5171 214.735 28.8582 215.395 28.912C216.071 28.8402 215.832 27.2213 215.714 26.551C215.597 26.0275 215.392 25.4237 215.242 24.8749C215.04 24.2797 214.96 23.555 215.179 22.9949C215.541 21.8722 217.001 21.2338 218.167 21.4564C218.771 21.5633 219.304 21.8563 219.793 22.2004C222.311 23.9104 221.714 29.1312 221.68 31.9572C221.637 32.9138 221.63 33.992 221.401 34.9021L221.398 34.9121H221.398Z" fill="black" fill-opacity="0.8"/>
+      <path d="M249.633 34.9586C249.27 35.9942 248.202 36.7051 247.106 36.8233C244.766 37.0618 242.531 35.8959 241.257 33.9893C240.325 32.662 239.457 31.1222 238.576 29.7922C237.468 28.2178 237.148 29.0688 237.597 30.4459C238.168 32.2721 239.052 35.0562 237.005 36.2719C235.634 36.998 233.472 36.9037 232.368 35.7205C231.856 35.1612 231.716 34.3394 231.708 33.6067C231.673 32.6786 231.723 31.5659 231.723 30.7442C231.712 28.3241 231.704 26.1797 232.013 23.5855C232.371 21.279 235.499 21.0239 237.395 21.5155C239.591 22.0649 240.493 23.9688 241.437 25.8183C241.814 26.5636 242.969 28.9047 243.629 28.9585C244.305 28.8867 244.066 27.2678 243.948 26.5975C243.831 26.074 243.626 25.4702 243.476 24.9215C243.274 24.3262 243.194 23.6015 243.413 23.0414C243.775 21.9188 245.235 21.2803 246.401 21.5029C247.005 21.6098 247.538 21.9028 248.027 22.2469C250.545 23.9569 249.948 29.1777 249.915 32.0037C249.871 32.9603 249.864 34.0385 249.635 34.9486L249.632 34.9586H249.633Z" fill="black" fill-opacity="0.8"/>
+    </svg>
+  </div>
+
+  <!-- Yellow card — overflow:hidden clips the video -->
+  <div class="wait-card">
+
+    <!-- Top: labels + amount -->
+    <div class="wait-top">
+      <div class="checking-lbl">CHECKING RATE FOR</div>
+      <div class="wait-amount" id="wait-amt">254.00 AED</div>
+      <div class="wait-via">VIA USDC</div>
+    </div>
+
+    <!-- Video section: coins animation, cropped to card width -->
+    <div class="wait-vid-wrap">
+      <video class="coins-vid" autoplay muted loop playsinline>
+        <source src="coins.webm" type="video/webm">
+        <source src="coins.mov">
+      </video>
+    </div>
+
+    <!-- Footer: instruction -->
+    <div class="wait-footer">
+      <!-- Swap/NFC icon -->
+      <svg viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0.75" y="0.75" width="26.5" height="22.5" rx="4.25" stroke="rgba(0,0,0,0.6)" stroke-width="1.5"/>
+        <path d="M7 9.5h14M17.5 6.5l3.5 3-3.5 3" stroke="rgba(0,0,0,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M21 14.5H7M10.5 11.5L7 14.5l3.5 3" stroke="rgba(0,0,0,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="wait-hint">Pass the terminal to the customer once ready</div>
+    </div>
+
+  </div><!-- /wait-card -->
+
+  <!-- Notch mask — white circle matching button position, recreates the card "deduction" -->
+  <div class="notch-mask"></div>
+
+  <!-- X button — outside card so it isn't clipped by overflow:hidden -->
+  <button class="wait-close" id="wait-close" aria-label="Cancel">
+    <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="white"/>
+    </svg>
+  </button>
+
+</div><!-- /s2 -->
+
+<script>
+  let digits = '';
+  const MAX_LEFT = 9;
+  const el = document.getElementById('amt');
+  const currencyEl = document.querySelector('.currency');
+
+  function render() {
+    if (!digits.length) {
+      el.innerHTML = '.<span class="cur"></span>';
+      el.style.fontSize = '';
+      currencyEl.style.fontSize = '';
+      return;
+    }
+    const p = digits.padStart(3, '0');
+    const r = p.slice(-2);
+    let l = p.slice(0, -2).replace(/^0+/, '');
+    el.textContent = (l || '') + '.' + r;
+    if (!l) el.textContent = '.' + r;
+
+    // Auto-shrink: start at 70px, shrink by 2px until fits
+    const max = el.parentElement.clientWidth;
+    let s = 70;
+    el.style.fontSize = s + 'px';
+    while (el.scrollWidth > max && s > 22) { s -= 2; el.style.fontSize = s + 'px'; }
+
+    // AED always matches the amount font size
+    currencyEl.style.fontSize = el.style.fontSize;
+  }
+
+  const s1 = document.getElementById('s1');
+  const s2 = document.getElementById('s2');
+  const waitAmt = document.getElementById('wait-amt');
+
+  function showScreen2() {
+    // Format amount: digits "25400" → "254.00 AED"
+    const p = digits.padStart(3, '0');
+    const formatted = (p.slice(0, -2).replace(/^0+/, '') || '0') + '.' + p.slice(-2);
+    waitAmt.textContent = formatted + ' AED';
+    s1.classList.add('hidden');
+    s2.classList.remove('hidden');
+  }
+
+  function showScreen1() {
+    s2.classList.add('hidden');
+    s1.classList.remove('hidden');
+  }
+
+  document.getElementById('wait-close').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    showScreen1();
+  });
+
+  function press(k) {
+    if (k === 'backspace') {
+      digits = digits.slice(0, -1);
+    } else if (k === 'submit') {
+      if (digits.length && +digits > 0) showScreen2();
+      return;
+    } else {
+      const n = digits + k;
+      if (Math.max(0, n.length - 2) > MAX_LEFT) return;
+      digits = n;
+    }
+    render();
+  }
+
+  document.querySelectorAll('[data-key]').forEach(b => {
+    b.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      b.classList.add('pressed');
+      press(b.dataset.key);
+    });
+    b.addEventListener('pointerup',    () => b.classList.remove('pressed'));
+    b.addEventListener('pointercancel',() => b.classList.remove('pressed'));
+    b.addEventListener('pointerleave', () => b.classList.remove('pressed'));
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') press(e.key);
+    else if (e.key === 'Backspace') { e.preventDefault(); press('backspace'); }
+    else if (e.key === 'Enter') press('submit');
+    else if (e.key === 'Escape' && !s2.classList.contains('hidden')) showScreen1();
+  });
+
+  render();
+  window.addEventListener('resize', () => { if (digits.length) render(); });
+</script>
+</body>
+</html>
