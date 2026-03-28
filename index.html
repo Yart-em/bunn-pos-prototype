@@ -67,7 +67,7 @@
     top:53px; bottom:50px;
     left:2.99%; right:3.23%;
     background:#FFC803;
-    border-radius:35px;
+    /* border-radius handled by JS clip-path (includes notch at top-right) */
     overflow:hidden;
     display:flex; flex-direction:column;
   }
@@ -137,7 +137,7 @@
   }
 
   /* X close button — outside card div so it isn't clipped by overflow:hidden.
-     box-shadow ring (0 0 0 8px #fff) creates the white "notch" cutout into the card corner. */
+     Notch is cut into the card via JS clip-path: path() — matches Figma Boolean Subtract. */
   .wait-close {
     position:absolute;
     top:53px; right:3.23%;
@@ -147,10 +147,10 @@
     border:none; outline:none; cursor:pointer;
     z-index:10;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 0 0 8px #fff, 0 4px 8px rgba(0,0,0,.12), 0 16px 32px rgba(0,0,0,.15);
+    box-shadow:0 4px 8px rgba(0,0,0,.12), 0 16px 32px rgba(0,0,0,.15);
     transition:transform .1s,box-shadow .1s;
   }
-  .wait-close:active { transform:scale(.92); box-shadow:0 0 0 8px #fff, 0 2px 4px rgba(0,0,0,.15); }
+  .wait-close:active { transform:scale(.92); box-shadow:0 2px 4px rgba(0,0,0,.15); }
   .wait-close svg { width:45%; height:45%; }
 
   /*
@@ -501,6 +501,36 @@
   const s2 = document.getElementById('s2');
   const waitAmt = document.getElementById('wait-amt');
 
+  /* ── Wait-card clip-path with Boolean-Subtract notch ──
+     Matches Figma: rounded rect with a circular arc cut at top-right for the X button.
+     Path (card-local coords, W×H):
+       top-left corner → top edge → arc notch (sweep=0, concave inward) →
+       right edge → bottom-right corner → bottom edge → bottom-left corner → left edge → Z
+  */
+  function updateWaitCardShape() {
+    const card = document.querySelector('.wait-card');
+    const btn  = document.querySelector('.wait-close');
+    if (!card || !btn) return;
+    const W  = card.offsetWidth;
+    const H  = card.offsetHeight;
+    if (!W || !H) return;
+    const nr = btn.offsetWidth / 2;  // notch radius = button radius
+    const cr = 35;                    // standard corner radius
+    // sweep=0 (CCW in SVG) = concave arc curving INTO the card = Figma Boolean Subtract
+    const p = [
+      `M${cr} 0`,
+      `H${W - nr}`,
+      `A${nr} ${nr} 0 0 0 ${W} ${nr}`,
+      `V${H - cr}`,
+      `A${cr} ${cr} 0 0 1 ${W - cr} ${H}`,
+      `H${cr}`,
+      `A${cr} ${cr} 0 0 1 0 ${H - cr}`,
+      `V${cr}`,
+      `A${cr} ${cr} 0 0 1 ${cr} 0Z`
+    ].join(' ');
+    card.style.clipPath = `path('${p}')`;
+  }
+
   function showScreen2() {
     // Format amount: digits "25400" → "254.00 AED"
     const p = digits.padStart(3, '0');
@@ -508,6 +538,7 @@
     waitAmt.textContent = formatted + ' AED';
     s1.classList.add('hidden');
     s2.classList.remove('hidden');
+    updateWaitCardShape();
   }
 
   function showScreen1() {
@@ -552,7 +583,10 @@
   });
 
   render();
-  window.addEventListener('resize', () => { if (digits.length) render(); });
+  window.addEventListener('resize', () => {
+    if (digits.length) render();
+    if (!s2.classList.contains('hidden')) updateWaitCardShape();
+  });
 </script>
 </body>
 </html>
