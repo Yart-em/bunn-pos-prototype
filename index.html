@@ -44,8 +44,20 @@
     position:absolute; top:0; right:0; bottom:0; left:0;
     display:flex; flex-direction:column;
     background:#fff;
+    /* Ease-out crossfade — matches Figma Smart Animate 300ms */
+    opacity:1;
+    visibility:visible;
+    transition: opacity 0.3s cubic-bezier(0,0,0.58,1),
+                visibility 0s linear 0s;
   }
-  .screen.hidden { display:none; }
+  .screen.hidden {
+    opacity:0;
+    visibility:hidden;
+    pointer-events:none;
+    /* visibility:hidden kicks in after fade completes so it doesn't block tap */
+    transition: opacity 0.3s cubic-bezier(0,0,0.58,1),
+                visibility 0s linear 0.3s;
+  }
 
   /* ── Screen 2: Waiting for payment ── */
   /*
@@ -964,14 +976,23 @@
     } catch(e) { /* keep hardcoded fallback */ }
   }
 
-  /* ── Screen transitions ── */
+  /* ── Screen transitions (Figma Smart Animate: ease-out 300ms crossfade) ── */
+  const FADE = 300; // ms — matches Figma transition duration
+
+  // Fade out `from`, fade in `to`. Returns a promise that resolves when fade-in completes.
+  function transitionTo(from, to) {
+    if (Array.isArray(from)) { from.forEach(s => s.classList.add('hidden')); }
+    else { from.classList.add('hidden'); }
+    to.classList.remove('hidden');
+    return new Promise(r => setTimeout(r, FADE));
+  }
+
   async function showScreen2() {
     const p   = digits.padStart(3, '0');
     const aed = (p.slice(0, -2).replace(/^0+/, '') || '0') + '.' + p.slice(-2);
     waitAmt.textContent = aed + ' AED';
-    s1.classList.add('hidden');
-    s2.classList.remove('hidden');
     updateWaitCardShape();
+    transitionTo(s1, s2);
 
     // Race: 1-second minimum display + rate fetch in parallel
     const t0 = Date.now();
@@ -982,18 +1003,16 @@
 
   function showScreen3(aed) {
     payAmt.textContent = aed + ' AED';
-    s2.classList.add('hidden');
-    s3.classList.remove('hidden');
     updateS3CardShape();
+    transitionTo(s2, s3);
   }
 
   function showScreen4(aed) {
     const usdc = (parseFloat(aed) / usdcRate).toFixed(2);
     s4Aed.textContent = aed + ' AED';
     s4Usdc.textContent = 'VIA ' + usdc + ' USDC';
-    s3.classList.add('hidden');
-    s4.classList.remove('hidden');
     updateS4CardShape();
+    transitionTo(s3, s4);
     // After 3 seconds show success
     setTimeout(() => showScreen5(aed, usdc), 3000);
   }
@@ -1008,38 +1027,34 @@
     const min = String(now.getMinutes()).padStart(2,'0');
     receiptDate.textContent = dd + '.' + mm + '.' + yyyy + ' ' + hh + ':' + min;
     receiptAmount.textContent = aed + ' AED via ' + usdc + ' USDC Base';
-    s4.classList.add('hidden');
-    s5.classList.remove('hidden');
+
     // Show card X button, apply notch
     const cardClose = document.getElementById('s5-card-close');
     if (cardClose) cardClose.style.opacity = '';
     updateS5CardShape();
+
     // Ensure receipt top is at least 30px below the DONE! title
     const rec = document.getElementById('receipt');
     const printBtn = document.getElementById('s5-print');
     if (rec) {
       const titleEl = document.querySelector('.success-title');
       if (titleEl) {
-        const figmaTopPx = 0.2243 * window.innerHeight;  // 22.43% Figma value
+        const figmaTopPx = 0.2243 * window.innerHeight;
         const titleBottomPx = titleEl.getBoundingClientRect().bottom;
         const recTop = Math.max(figmaTopPx, titleBottomPx + 30);
         rec.style.top = recTop + 'px';
-        // Print button sits 3px below receipt top
         if (printBtn) printBtn.style.top = (recTop + 3) + 'px';
       }
     }
-    // Trigger receipt slide-up animation after a brief delay
-    setTimeout(() => {
+
+    // Fade screen in, then slide receipt up after fade completes
+    transitionTo(s4, s5).then(() => {
       if (rec) rec.classList.add('slide-in');
-    }, 200);
+    });
   }
 
   function showScreen1() {
-    s2.classList.add('hidden');
-    s3.classList.add('hidden');
-    s4.classList.add('hidden');
-    s5.classList.add('hidden');
-    s1.classList.remove('hidden');
+    transitionTo([s2, s3, s4, s5], s1);
   }
 
   document.getElementById('wait-close').addEventListener('pointerdown', e => {
