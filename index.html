@@ -479,7 +479,7 @@
     padding:20px 22px 24px;
     transform:translateY(120%);
     z-index:20;
-    box-shadow:0 4px 16px rgba(0,0,0,.10),0 16px 40px rgba(0,0,0,.15);
+    box-shadow:0 0px 4px rgba(12,12,13,.05),0 12px 32px rgba(12,12,13,.10);
   }
   .receipt.slide-in {
     animation: receiptUp 0.55s cubic-bezier(.22,.68,0,1.2) forwards;
@@ -534,25 +534,17 @@
     color:rgba(0,0,0,.75); letter-spacing:.05em;
     text-transform:uppercase; margin-left:4px;
   }
-  /* Scalloped bottom edge of receipt — uses ::after extending below receipt box */
+  /* Scalloped bottom edge of receipt — inline SVG with exact Figma cubic-bezier path */
   .receipt {
-    overflow:visible !important;  /* allow ::after scallop to extend below */
-    border-radius:5px 5px 0 0 !important;  /* flat bottom, scallop provides the edge */
+    overflow:visible !important;  /* allow scallop SVG to extend below */
+    border-radius:5px 5px 0 0 !important;  /* flat bottom, scallop SVG provides the edge */
   }
-  .receipt::after {
-    content:'';
+  .receipt-scallop {
     position:absolute;
-    bottom:-20px;
-    /* left/right:-22px cancels 22px padding so scallop spans the full visual card width */
-    left:-22px; right:-22px;
-    height:20px;
-    /* Figma scallop: 7 bumps across 321px receipt, spacing 44.58px, first center at 26.75px.
-       Radial circle center at 22px within each 44.58px tile → bg-pos 4.75px aligns first bump. */
-    background:radial-gradient(circle 20px at 22px 0, transparent 19px, #fff 20px) repeat-x;
-    background-size:44.58px 20px;
-    background-position:4.75px 0;
-    z-index:0;
-    pointer-events:none;
+    bottom:-20px; left:0; right:0;
+    width:100%; height:20px;
+    display:block; pointer-events:none; z-index:0;
+    overflow:visible;
   }
   /* X button for the yellow DONE card (shown before receipt; hidden when receipt appears) */
   .s5-card-close-wrap {
@@ -581,11 +573,8 @@
     z-index:1;
   }
   .success-bunny-wrap img {
-    /* PNG 2667×1500 (1.78:1). Vertically center so eyes/face land in the visible strip. */
-    position:absolute;
-    top:50%; left:0;
-    transform:translateY(-50%);
-    width:100%; height:auto;
+    /* bunny-done.png: 1044×300 (3.48:1) — exactly matches Figma slot (300×87). No cropping needed. */
+    width:100%; height:auto; display:block;
   }
   /* S4 card: plain rounded corners — no notch/X button */
   #s4-card { border-radius:35px; }
@@ -826,7 +815,7 @@
     <!-- Bunny head peeking from card bottom (Figma: x=53,y=692,w=300,h=87 inside card mask).
          Wrapper clips to 9.95vh (87/874) to show only the face at top of the landscape image. -->
     <div class="success-bunny-wrap" id="success-bunny">
-      <img src="success-bunny.png" alt="">
+      <img src="bunny-done.png" alt="">
     </div>
 
   </div>
@@ -857,6 +846,11 @@
       <div class="receipt-label">OTHER DATA</div>
       <div class="receipt-value" style="font-size:11px;word-break:break-all;">0xee91c146d26b4494ada18ed704f4e8ad96013c7ec7dd8f14224592c4ee6f1221 via Base</div>
     </div>
+    <!-- Exact Figma scallop: translated from Subtract (1).svg (viewBox 0 0 377 516).
+         Original path x=28–349, y=452–472. Translated: subtract x=28, y=452 → local 0 0 321 20 -->
+    <svg class="receipt-scallop" viewBox="0 0 321 20" preserveAspectRatio="none" fill="white" xmlns="http://www.w3.org/2000/svg">
+      <path d="M321 15.542C321 18.004 319.004 20 316.542 20C314.079 20 312.131 17.983 311.644 15.569C309.846 6.656 302.741 0 294.25 0C285.759 0 278.654 6.656 276.856 15.569C276.369 17.983 274.421 20 271.958 20C269.496 20 267.548 17.983 267.061 15.569C265.263 6.656 258.158 0 249.667 0C241.176 0 234.07 6.656 232.272 15.57C231.785 17.983 229.837 20 227.375 20C224.913 20 222.965 17.983 222.478 15.57C220.68 6.656 213.574 0 205.083 0C196.592 0 189.487 6.656 187.689 15.569C187.202 17.983 185.254 20 182.792 20C180.329 20 178.381 17.983 177.894 15.569C176.096 6.656 168.991 0 160.5 0C152.009 0 144.904 6.656 143.106 15.569C142.619 17.983 140.671 20 138.208 20C135.746 20 133.798 17.983 133.311 15.569C131.513 6.656 124.408 0 115.917 0C107.426 0 100.32 6.656 98.522 15.57C98.035 17.983 96.087 20 93.625 20C91.163 20 89.215 17.983 88.728 15.57C86.93 6.656 79.824 0 71.333 0C62.8418 0 55.7368 6.656 53.9392 15.569C53.4524 17.983 51.5039 20 49.0415 20C46.5791 20 44.6306 17.983 44.1439 15.569C42.3463 6.656 35.2413 0 26.75 0C18.2587 0 11.1537 6.656 9.3561 15.569C8.8694 17.983 6.9209 20 4.4585 20C1.9961 20 0 18.004 0 15.542V0H321Z"/>
+    </svg>
   </div>
   <button class="receipt-print" id="s5-print" aria-label="Print receipt">
     <svg width="20" height="17" viewBox="0 0 20 17" fill="none" xmlns="http://www.w3.org/2000/svg">
