@@ -44,6 +44,10 @@
     position:absolute; top:0; right:0; bottom:0; left:0;
     display:flex; flex-direction:column;
     background:#fff;
+    /* GPU layer — eliminates Android WebView compositing lag */
+    will-change:opacity;
+    transform:translateZ(0);
+    backface-visibility:hidden;
     /* Ease-out crossfade — matches Figma Smart Animate 300ms */
     opacity:1;
     visibility:visible;
