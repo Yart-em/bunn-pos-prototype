@@ -496,17 +496,20 @@
     font-weight:700; font-size:18px; letter-spacing:.15em;
     color:rgba(0,0,0,.85);
   }
+  /* Print button — screen-level absolute (sibling to receipt), JS sets .top dynamically.
+     Figma: circle cx=332 cy=224 r=25 in 402×874. From pos right: (402-357)/402=11.19%. */
   .receipt-print {
     position:absolute;
-    top:3px; right:4px;
+    right:calc(10.2% + 4px); /* aligns right edge 4px inside receipt right edge */
+    top:22.43%;              /* default Figma %; overridden by JS to track receipt.top+3px */
     width:50px; height:50px;
     border-radius:50%;
     background:#D9D9D9;
     border:none; cursor:pointer;
     display:flex; align-items:center; justify-content:center;
-    box-shadow:0 4px 12px rgba(0,0,0,.18), 0 8px 24px rgba(0,0,0,.12);
+    box-shadow:0 4px 16px rgba(0,0,0,.20), 0 8px 24px rgba(0,0,0,.14);
     transition:opacity .15s;
-    z-index:2;
+    z-index:25;
   }
   .receipt-print:active { opacity:.75; }
   .receipt-date {
@@ -540,13 +543,14 @@
     content:'';
     position:absolute;
     bottom:-20px;
-    /* left:-22px/right:-22px compensates for padding:22px so scallop spans full card width */
+    /* left/right:-22px cancels 22px padding so scallop spans the full visual card width */
     left:-22px; right:-22px;
     height:20px;
-    /* Circles 44px wide, 20px radius, transparent inside (shows yellow through), white outside */
+    /* Figma scallop: 7 bumps across 321px receipt, spacing 44.58px, first center at 26.75px.
+       Radial circle center at 22px within each 44.58px tile → bg-pos 4.75px aligns first bump. */
     background:radial-gradient(circle 20px at 22px 0, transparent 19px, #fff 20px) repeat-x;
-    background-size:44px 20px;
-    background-position:0 0;
+    background-size:44.58px 20px;
+    background-position:4.75px 0;
     z-index:0;
     pointer-events:none;
   }
@@ -754,7 +758,7 @@
   <!-- Bunny illustration frame — Figma Frame 52 (x=147,y=304,w=255,h=444).
        clip-path:inset(0) clips the rotated bunny to the frame bounds. -->
   <div class="pay-illus-frame">
-    <img class="bunny-img" src="nfc-bunny.png" alt="">
+    <img class="bunny-img" src="bunny.png" alt="">
   </div>
 
   <!-- Tap-to-pay B&W illustration — screen-absolute, Figma: x=35.77,y=504,w=401,h=272 -->
@@ -830,7 +834,7 @@
   <!-- Receipt: screen-level overlay (z-index:20), slides up from below over yellow card.
        Figma "Transaction success screen + (1).svg": white card y=196..656, x=40..361 in 402×874 -->
   <div class="receipt" id="receipt">
-    <div class="receipt-header">
+    <div class="receipt-header" style="padding-right:30px;">
       <span class="receipt-logo">BUNN</span>
     </div>
     <div class="receipt-date" id="receipt-date">16.02.2026 10:35</div>
@@ -1003,12 +1007,16 @@
     updateS5CardShape();
     // Ensure receipt top is at least 30px below the DONE! title
     const rec = document.getElementById('receipt');
+    const printBtn = document.getElementById('s5-print');
     if (rec) {
       const titleEl = document.querySelector('.success-title');
       if (titleEl) {
         const figmaTopPx = 0.2243 * window.innerHeight;  // 22.43% Figma value
         const titleBottomPx = titleEl.getBoundingClientRect().bottom;
-        rec.style.top = Math.max(figmaTopPx, titleBottomPx + 30) + 'px';
+        const recTop = Math.max(figmaTopPx, titleBottomPx + 30);
+        rec.style.top = recTop + 'px';
+        // Print button sits 3px below receipt top (Figma: button top-edge y=199, receipt y=196)
+        if (printBtn) printBtn.style.top = (recTop + 3) + 'px';
       }
     }
     // Trigger receipt slide-up animation after a brief delay
@@ -1038,7 +1046,9 @@
   });
   function resetReceipt() {
     const rec = document.getElementById('receipt');
+    const printBtn = document.getElementById('s5-print');
     if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; rec.style.top = ''; }
+    if (printBtn) printBtn.style.top = '';
   }
   document.getElementById('s5-print').addEventListener('pointerdown', e => {
     e.preventDefault();
