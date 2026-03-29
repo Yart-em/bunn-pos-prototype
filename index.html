@@ -136,7 +136,7 @@
     top:0; right:0; bottom:0; left:0;
     width:100%; height:100%;
     object-fit:cover;
-    object-position:center bottom;
+    object-position:center center;
   }
 
   /* Footer: swap icon + instruction text — always stays below video, has bottom breathing room */
@@ -1182,7 +1182,7 @@
             /* object-fit:cover, anchor bottom */
             var scale = Math.max(cw / vidW, ch / vidH);
             var dw = vidW * scale, dh = vidH * scale;
-            var dx = (cw - dw) / 2,  dy = ch - dh;
+            var dx = (cw - dw) / 2,  dy = (ch - dh) / 2;
             ctx.clearRect(0, 0, cw, ch);
             ctx.drawImage(video, dx, dy, dw, dh);
           }
