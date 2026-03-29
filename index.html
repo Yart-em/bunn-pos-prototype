@@ -223,7 +223,11 @@
   /* NFC tap button — bottom-left of card, fully inside card */
   .nfc-btn {
     position:absolute;
-    top:calc(53px + 35.7vh);
+    /* Center button at card bottom edge — same gap from bottom as from left.
+       Card bottom = 53px + 49vh. Button radius ≈ half of clamp(50px,14.7%,64px) ≈ 30px.
+       Gap from card-left (3.23%) to button-left (5.5%) ≈ 9px on 402px device.
+       Same 9px gap → button-bottom = card_bottom − 9px → top = card_bottom − btn_h − 9px */
+    top:calc(53px + 49vh - 69px);
     left:5.5%;
     width:clamp(50px,14.7%,64px); aspect-ratio:1;
     border-radius:50%;
@@ -535,12 +539,31 @@
     color:rgba(0,0,0,.75); letter-spacing:.05em;
     text-transform:uppercase; margin-left:4px;
   }
-  /* Scalloped bottom edge of receipt */
-  .receipt-scallop {
-    height:18px;
-    background:radial-gradient(circle at 10px -1px, transparent 12px, #fff 13px) repeat-x;
-    background-size:20px 18px;
-    margin:16px -22px 0;
+  /* Scalloped bottom edge of receipt — uses ::after extending below receipt box */
+  .receipt {
+    overflow:visible !important;  /* allow ::after scallop to extend below */
+    border-radius:20px 20px 0 0 !important;  /* flat bottom, scallop provides the edge */
+  }
+  .receipt::after {
+    content:'';
+    position:absolute;
+    bottom:-20px;
+    /* left:-22px/right:-22px compensates for padding:22px so scallop spans full card width */
+    left:-22px; right:-22px;
+    height:20px;
+    /* Circles 44px wide, 20px radius, transparent inside (shows yellow through), white outside */
+    background:radial-gradient(circle 20px at 22px 0, transparent 19px, #fff 20px) repeat-x;
+    background-size:44px 20px;
+    background-position:0 0;
+    z-index:0;
+    pointer-events:none;
+  }
+  /* X button for the yellow DONE card (shown before receipt; hidden when receipt appears) */
+  .s5-card-close-wrap {
+    transition:opacity .2s;
+  }
+  .s5-card-close-wrap.hidden-by-receipt {
+    opacity:0; pointer-events:none;
   }
   /* Bunny on success screen.
      Exact values from SVG (Transaction success screen +.svg, viewBox 0 0 402 874):
@@ -562,6 +585,10 @@
     z-index:1;
   }
   .success-bunny-wrap img {
+    /* Anchor to bottom so face/eyes portion (lower half of image) is visible,
+       not the top dome. Image is landscape 2667×1500; face is in the lower half. */
+    position:absolute;
+    bottom:0; left:0;
     width:100%;
     height:auto;
     display:block;
@@ -847,9 +874,14 @@
       <div class="receipt-label">OTHER DATA</div>
       <div class="receipt-value" style="font-size:11px;word-break:break-all;">0xee91c146d26b4494ada18ed704f4e8ad96013c7ec7dd8f14224592c4ee6f1221 via Base</div>
     </div>
-    <div class="receipt-scallop"></div>
   </div>
 
+  <!-- X button for yellow DONE card — hidden once receipt slides in -->
+  <button class="wait-close" id="s5-card-close" aria-label="Close">
+    <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="white"/>
+    </svg>
+  </button>
 
 </div><!-- /s5 -->
 
@@ -919,8 +951,7 @@
     applyCardNotch(document.querySelector('#s4 .wait-card'), document.getElementById('s4-close'));
   }
   function updateS5CardShape() {
-    /* success-card no longer needs a notch: receipt close btn is inside the receipt overlay */
-    return;
+    applyCardNotch(document.getElementById('success-card'), document.getElementById('s5-card-close'));
   }
 
   /* ── Rate fetching: Coinbase public API, fallback 3.67 ── */
@@ -982,10 +1013,15 @@
     receiptAmount.textContent = aed + ' AED via ' + usdc + ' USDC Base';
     s4.classList.add('hidden');
     s5.classList.remove('hidden');
-    // Trigger receipt slide-up animation after a brief delay
+    // Show card X button, apply notch
+    const cardClose = document.getElementById('s5-card-close');
+    if (cardClose) cardClose.style.opacity = '';
+    updateS5CardShape();
+    // Trigger receipt slide-up animation after a brief delay; hide card X button when receipt appears
     setTimeout(() => {
       const rec = document.getElementById('receipt');
       if (rec) rec.classList.add('slide-in');
+      if (cardClose) cardClose.style.opacity = '0';
     }, 200);
   }
 
@@ -1014,6 +1050,13 @@
   document.getElementById('s5-close').addEventListener('pointerdown', e => {
     e.preventDefault();
     // Reset receipt for next time (remove animation class so it starts off-screen again)
+    const rec = document.getElementById('receipt');
+    if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; }
+    showScreen1();
+  });
+  document.getElementById('s5-card-close').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    // Reset receipt state for next time
     const rec = document.getElementById('receipt');
     if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; }
     showScreen1();
