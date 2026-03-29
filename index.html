@@ -1003,10 +1003,29 @@
     setTimeout(() => showScreen3(aed), remaining);
   }
 
+  // ── Android NFC bridge helpers ─────────────────────────────────────────────
+  // Safe wrappers: no-ops when running in browser (window.Android is undefined)
+  const PAYMENT_ADDRESS = '0x9e5195bd8632aa018d31cf71d1171b3fe55cee1a';
+
+  function nfcStart(aed, usdc) {
+    if (window.Android && window.Android.startNfcBroadcast) {
+      const url = `https://bunn.world?aed=${aed}&usdc=${usdc}&address=${PAYMENT_ADDRESS}`;
+      window.Android.startNfcBroadcast(url);
+    }
+  }
+  function nfcStop() {
+    if (window.Android && window.Android.stopNfcBroadcast) {
+      window.Android.stopNfcBroadcast();
+    }
+  }
+
   function showScreen3(aed) {
     payAmt.textContent = aed + ' AED';
     updateS3CardShape();
     transitionTo(s2, s3);
+    // Start NFC broadcast with AED + USDC amounts and receiving wallet
+    const usdc = usdcRate ? (parseFloat(aed) / usdcRate).toFixed(2) : '0.00';
+    nfcStart(aed, usdc);
   }
 
   function showScreen4(aed) {
@@ -1014,6 +1033,7 @@
     s4Aed.textContent = aed + ' AED';
     s4Usdc.textContent = 'VIA ' + usdc + ' USDC';
     updateS4CardShape();
+    nfcStop();   // Payment tapped — stop broadcasting
     transitionTo(s3, s4);
     // After 3 seconds show success
     setTimeout(() => showScreen5(aed, usdc), 3000);
@@ -1056,6 +1076,7 @@
   }
 
   function showScreen1() {
+    nfcStop();
     transitionTo([s2, s3, s4, s5], s1);
   }
 
