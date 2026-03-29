@@ -463,15 +463,19 @@
     line-height:1;
     flex-shrink:0;
   }
-  /* Receipt slides up from bottom inside the success card */
+  /* Receipt: screen-level overlay sliding up from below.
+     Figma: white card x=40..361, y=196..656 in 402×874 frame.
+     left=40/402=9.95%, right=(402-361)/402=10.2%, top=196/874=22.43% */
   .receipt {
     position:absolute;
-    bottom:0; left:0; right:0;
+    left:9.95%; right:10.2%;
+    top:22.43%;
     background:#fff;
-    border-radius:20px 20px 0 0;
-    padding:20px 22px 0;
-    transform:translateY(100%);
-    z-index:2;
+    border-radius:20px;
+    padding:20px 22px 24px;
+    transform:translateY(120%);
+    z-index:20;
+    box-shadow:0 4px 16px rgba(0,0,0,.10),0 16px 40px rgba(0,0,0,.15);
   }
   .receipt.slide-in {
     animation: receiptUp 0.55s cubic-bezier(.22,.68,0,1.2) forwards;
@@ -479,6 +483,20 @@
   @keyframes receiptUp {
     to { transform:translateY(0); }
   }
+  /* Receipt's own close button (Figma: x=312,y=204 → right=9px,top=8px inside card) */
+  .receipt-close {
+    position:absolute;
+    top:8px; right:9px;
+    width:40px; height:40px;
+    border-radius:50%;
+    background:#fff;
+    border:none; outline:none; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:0 4px 8px rgba(0,0,0,.10),0 8px 20px rgba(0,0,0,.12);
+    transition:transform .1s,box-shadow .1s;
+  }
+  .receipt-close:active { transform:scale(.92); }
+  .receipt-close svg { width:45%; height:45%; }
   .receipt-header {
     display:flex; align-items:center; justify-content:center;
     position:relative; margin-bottom:10px;
@@ -795,45 +813,43 @@
       <img src="success-bunny.png" alt="">
     </div>
 
-    <!-- Receipt: animates up from bottom, slides over bunny -->
-    <div class="receipt" id="receipt">
-      <div class="receipt-header">
-        <span class="receipt-logo">BUNN</span>
-        <button class="print-btn" aria-label="Print">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
-          </svg>
-        </button>
-      </div>
-      <div class="receipt-date" id="receipt-date">16.02.2026 10:35</div>
-      <div class="receipt-section">
-        <div class="receipt-label">MERCHANT</div>
-        <div class="receipt-value">Bunny cafe, Dubai, 01-101,<br>100123456789001</div>
-      </div>
-      <div class="receipt-section">
-        <div class="receipt-label">TRANSACTION</div>
-        <div class="receipt-value">
-          Purchase <span class="success-badge">SUCCESS 🎉</span><br>
-          <span id="receipt-amount">254 AED via 70.6 USDC Base</span>
-        </div>
-      </div>
-      <div class="receipt-section">
-        <div class="receipt-label">PAYER</div>
-        <div class="receipt-value" style="font-size:11px;word-break:break-all;">0x3047Bf5BFCa618e40c35cb3C6D20f38bd41948a0</div>
-      </div>
-      <div class="receipt-section">
-        <div class="receipt-label">OTHER DATA</div>
-        <div class="receipt-value" style="font-size:11px;word-break:break-all;">0xee91c146d26b4494ada18ed704f4e8ad96013c7ec7dd8f14224592c4ee6f1221 via Base</div>
-      </div>
-      <div class="receipt-scallop"></div>
-    </div>
   </div>
 
-  <button class="wait-close" id="s5-close" aria-label="Close">
-    <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="white"/>
-    </svg>
-  </button>
+  <!-- Receipt: screen-level overlay (z-index:20), slides up from below over yellow card.
+       Figma "Transaction success screen + (1).svg": white card y=196..656, x=40..361 in 402×874 -->
+  <div class="receipt" id="receipt">
+    <!-- Close button at Figma x=312,y=204 (right:9px, top:8px inside card) -->
+    <button class="receipt-close" id="s5-close" aria-label="Close">
+      <svg viewBox="344 66 31 31" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M370.118 90.5699C370.219 90.6715 370.3 90.7922 370.355 90.925C370.41 91.0577 370.438 91.2 370.438 91.3437C370.438 91.4875 370.41 91.6298 370.355 91.7625C370.3 91.8953 370.219 92.016 370.118 92.1176C370.016 92.2192 369.895 92.2998 369.763 92.3548C369.63 92.4098 369.487 92.4381 369.344 92.4381C369.2 92.4381 369.058 92.4098 368.925 92.3548C368.792 92.2998 368.672 92.2192 368.57 92.1176L359.5 83.0463L350.43 92.1176C350.225 92.3228 349.946 92.4381 349.656 92.4381C349.366 92.4381 349.088 92.3228 348.882 92.1176C348.677 91.9123 348.562 91.634 348.562 91.3437C348.562 91.0535 348.677 90.7752 348.882 90.5699L357.954 81.5L348.882 72.4301C348.677 72.2248 348.562 71.9465 348.562 71.6562C348.562 71.366 348.677 71.0877 348.882 70.8824C349.088 70.6772 349.366 70.5619 349.656 70.5619C349.946 70.5619 350.225 70.6772 350.43 70.8824L359.5 79.9537L368.57 70.8824C368.775 70.6772 369.054 70.5619 369.344 70.5619C369.634 70.5619 369.912 70.6772 370.118 70.8824C370.323 71.0877 370.438 71.366 370.438 71.6562C370.438 71.9465 370.323 72.2248 370.118 72.4301L361.046 81.5L370.118 90.5699Z" fill="rgba(0,0,0,0.7)"/>
+      </svg>
+    </button>
+    <div class="receipt-header">
+      <span class="receipt-logo">BUNN</span>
+    </div>
+    <div class="receipt-date" id="receipt-date">16.02.2026 10:35</div>
+    <div class="receipt-section">
+      <div class="receipt-label">MERCHANT</div>
+      <div class="receipt-value">Bunny cafe, Dubai, 01-101,<br>100123456789001</div>
+    </div>
+    <div class="receipt-section">
+      <div class="receipt-label">TRANSACTION</div>
+      <div class="receipt-value">
+        Purchase <span class="success-badge">SUCCESS 🎉</span><br>
+        <span id="receipt-amount">254 AED via 70.6 USDC Base</span>
+      </div>
+    </div>
+    <div class="receipt-section">
+      <div class="receipt-label">PAYER</div>
+      <div class="receipt-value" style="font-size:11px;word-break:break-all;">0x3047Bf5BFCa618e40c35cb3C6D20f38bd41948a0</div>
+    </div>
+    <div class="receipt-section">
+      <div class="receipt-label">OTHER DATA</div>
+      <div class="receipt-value" style="font-size:11px;word-break:break-all;">0xee91c146d26b4494ada18ed704f4e8ad96013c7ec7dd8f14224592c4ee6f1221 via Base</div>
+    </div>
+    <div class="receipt-scallop"></div>
+  </div>
+
 
 </div><!-- /s5 -->
 
@@ -903,7 +919,8 @@
     applyCardNotch(document.querySelector('#s4 .wait-card'), document.getElementById('s4-close'));
   }
   function updateS5CardShape() {
-    applyCardNotch(document.getElementById('success-card'), document.getElementById('s5-close'));
+    /* success-card no longer needs a notch: receipt close btn is inside the receipt overlay */
+    return;
   }
 
   /* ── Rate fetching: Coinbase public API, fallback 3.67 ── */
@@ -965,7 +982,6 @@
     receiptAmount.textContent = aed + ' AED via ' + usdc + ' USDC Base';
     s4.classList.add('hidden');
     s5.classList.remove('hidden');
-    updateS5CardShape();
     // Trigger receipt slide-up animation after a brief delay
     setTimeout(() => {
       const rec = document.getElementById('receipt');
@@ -997,9 +1013,9 @@
   });
   document.getElementById('s5-close').addEventListener('pointerdown', e => {
     e.preventDefault();
-    // Reset receipt animation for next time
+    // Reset receipt for next time (remove animation class so it starts off-screen again)
     const rec = document.getElementById('receipt');
-    if (rec) rec.classList.remove('slide-in');
+    if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; }
     showScreen1();
   });
 
