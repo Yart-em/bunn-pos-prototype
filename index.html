@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>BUNN POS</title>
 <link rel="manifest" href="manifest.json">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -222,6 +223,19 @@
     gap:2%;
     padding:10% 10% 16%;
     text-align:center;
+  }
+  /* QR code container inside pay-card */
+  .pay-qr-wrap {
+    background:#fff;
+    border-radius:12px;
+    padding:10px;
+    display:flex; align-items:center; justify-content:center;
+    width:clamp(120px, 38vw, 180px);
+    height:clamp(120px, 38vw, 180px);
+    flex-shrink:0;
+  }
+  .pay-qr-wrap canvas, .pay-qr-wrap img {
+    width:100% !important; height:100% !important;
   }
   .pay-lbl {
     font-weight:700;
@@ -754,7 +768,8 @@
 
   <!-- Yellow PAY PLEASE card -->
   <div class="pay-card" id="pay-card">
-    <div class="pay-lbl">PAY PLEASE</div>
+    <div class="pay-lbl">SCAN TO PAY</div>
+    <div class="pay-qr-wrap"><div id="pay-qr"></div></div>
     <div class="pay-amount" id="pay-amt">254.00 AED</div>
   </div>
 
@@ -1027,8 +1042,21 @@
     payAmt.textContent = aed + ' AED';
     updateS3CardShape();
     transitionTo(s2, s3);
-    // Start NFC broadcast with AED + USDC amounts and receiving wallet
+    // Build payment URL
     const usdc = usdcRate ? (parseFloat(aed) / usdcRate).toFixed(2) : '0.00';
+    const payUrl = `https://bunn.world?aed=${aed}&usdc=${usdc}&address=${PAYMENT_ADDRESS}`;
+    // Generate QR code
+    const qrEl = document.getElementById('pay-qr');
+    qrEl.innerHTML = '';
+    if (window.QRCode) {
+      new QRCode(qrEl, {
+        text: payUrl,
+        width: 160, height: 160,
+        colorDark: '#000', colorLight: '#fff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+    // Also try NFC HCE if available
     nfcStart(aed, usdc);
   }
 
