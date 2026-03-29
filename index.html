@@ -581,11 +581,11 @@
     z-index:1;
   }
   .success-bunny-wrap img {
-    /* SVG is pre-cropped to the bunny face — show it in full.
-       Aspect ratio of SVG (1920:551.73 ≈ 3.48:1) matches Figma slot (300×87). */
-    width:100%;
-    height:auto;
-    display:block;
+    /* PNG 2667×1500 (1.78:1). Vertically center so eyes/face land in the visible strip. */
+    position:absolute;
+    top:50%; left:0;
+    transform:translateY(-50%);
+    width:100%; height:auto;
   }
   /* S4 card: plain rounded corners — no notch/X button */
   #s4-card { border-radius:35px; }
@@ -758,7 +758,7 @@
   <!-- Bunny illustration frame — Figma Frame 52 (x=147,y=304,w=255,h=444).
        clip-path:inset(0) clips the rotated bunny to the frame bounds. -->
   <div class="pay-illus-frame">
-    <img class="bunny-img" src="bunny.png" alt="">
+    <img class="bunny-img" src="nfc-bunny.png" alt="">
   </div>
 
   <!-- Tap-to-pay B&W illustration — screen-absolute, Figma: x=35.77,y=504,w=401,h=272 -->
@@ -826,7 +826,7 @@
     <!-- Bunny head peeking from card bottom (Figma: x=53,y=692,w=300,h=87 inside card mask).
          Wrapper clips to 9.95vh (87/874) to show only the face at top of the landscape image. -->
     <div class="success-bunny-wrap" id="success-bunny">
-      <img src="success-bunny.svg" alt="">
+      <img src="success-bunny.png" alt="">
     </div>
 
   </div>
