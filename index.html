@@ -550,17 +550,6 @@
     display:block; pointer-events:none; z-index:0;
     overflow:visible;
   }
-  /* Logo on success screen must sit above the white mask and receipt */
-  #s5 .s2-logo { z-index:26; }
-  /* White mask that sits above the receipt to cover the yellow card — z-index between card and receipt */
-  .s5-white-top {
-    position:absolute;
-    top:0; left:0; right:0;
-    background:#fff;
-    z-index:19;          /* above yellow card (z-index default) but below receipt (z-index:20) */
-    pointer-events:none;
-    /* height is set dynamically by JS to match receipt top */
-  }
   /* X button for the yellow DONE card (shown before receipt; hidden when receipt appears) */
   .s5-card-close-wrap {
     transition:opacity .2s;
@@ -825,9 +814,6 @@
     </svg>
   </div>
 
-  <!-- White overlay masks yellow card above the receipt — height set by JS -->
-  <div class="s5-white-top" id="s5-white-top"></div>
-
   <!-- Yellow card: full height (bottom:10px padding) -->
   <div class="success-card" id="success-card">
     <div class="success-title">DONE!</div>
@@ -1040,9 +1026,6 @@
         rec.style.top = recTop + 'px';
         // Print button sits 3px below receipt top
         if (printBtn) printBtn.style.top = (recTop + 3) + 'px';
-        // White mask covers yellow card above the receipt
-        const whiteTop = document.getElementById('s5-white-top');
-        if (whiteTop) whiteTop.style.height = recTop + 'px';
       }
     }
     // Trigger receipt slide-up animation after a brief delay
