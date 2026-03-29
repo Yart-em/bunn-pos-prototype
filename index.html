@@ -585,10 +585,8 @@
     z-index:1;
   }
   .success-bunny-wrap img {
-    /* Anchor to bottom so face/eyes portion (lower half of image) is visible,
-       not the top dome. Image is landscape 2667×1500; face is in the lower half. */
-    position:absolute;
-    bottom:0; left:0;
+    /* SVG is pre-cropped to the bunny face — show it in full.
+       Aspect ratio of SVG (1920:551.73 ≈ 3.48:1) matches Figma slot (300×87). */
     width:100%;
     height:auto;
     display:block;
@@ -837,7 +835,7 @@
     <!-- Bunny head peeking from card bottom (Figma: x=53,y=692,w=300,h=87 inside card mask).
          Wrapper clips to 9.95vh (87/874) to show only the face at top of the landscape image. -->
     <div class="success-bunny-wrap" id="success-bunny">
-      <img src="success-bunny.png" alt="">
+      <img src="success-bunny.svg" alt="">
     </div>
 
   </div>
@@ -1017,9 +1015,18 @@
     const cardClose = document.getElementById('s5-card-close');
     if (cardClose) cardClose.style.opacity = '';
     updateS5CardShape();
+    // Ensure receipt top is at least 30px below the DONE! title
+    const rec = document.getElementById('receipt');
+    if (rec) {
+      const titleEl = document.querySelector('.success-title');
+      if (titleEl) {
+        const figmaTopPx = 0.2243 * window.innerHeight;  // 22.43% Figma value
+        const titleBottomPx = titleEl.getBoundingClientRect().bottom;
+        rec.style.top = Math.max(figmaTopPx, titleBottomPx + 30) + 'px';
+      }
+    }
     // Trigger receipt slide-up animation after a brief delay; hide card X button when receipt appears
     setTimeout(() => {
-      const rec = document.getElementById('receipt');
       if (rec) rec.classList.add('slide-in');
       if (cardClose) cardClose.style.opacity = '0';
     }, 200);
@@ -1047,18 +1054,18 @@
   document.getElementById('s4-close').addEventListener('pointerdown', e => {
     e.preventDefault(); showScreen1();
   });
+  function resetReceipt() {
+    const rec = document.getElementById('receipt');
+    if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; rec.style.top = ''; }
+  }
   document.getElementById('s5-close').addEventListener('pointerdown', e => {
     e.preventDefault();
-    // Reset receipt for next time (remove animation class so it starts off-screen again)
-    const rec = document.getElementById('receipt');
-    if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; }
+    resetReceipt();
     showScreen1();
   });
   document.getElementById('s5-card-close').addEventListener('pointerdown', e => {
     e.preventDefault();
-    // Reset receipt state for next time
-    const rec = document.getElementById('receipt');
-    if (rec) { rec.classList.remove('slide-in'); rec.style.transform = ''; }
+    resetReceipt();
     showScreen1();
   });
 
