@@ -4,6 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>BUNN POS</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFC803">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BUNN POS">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   @font-face {
     font-family: 'Engravers Gothic';
@@ -492,9 +498,7 @@
     position:relative; margin-bottom:10px;
   }
   .receipt-logo {
-    font-family:'Engravers Gothic',sans-serif;
-    font-weight:700; font-size:18px; letter-spacing:.15em;
-    color:rgba(0,0,0,.85);
+    display:block; width:72px; height:auto;
   }
   /* Print button — screen-level absolute (sibling to receipt), JS sets .top dynamically.
      Figma: circle cx=332 cy=224 r=25 in 402×874. From pos right: (402-357)/402=11.19%. */
@@ -689,9 +693,10 @@
 
     <!-- Video section: coins animation, cropped to card width -->
     <div class="wait-vid-wrap">
-      <video class="coins-vid" autoplay muted loop playsinline>
-        <source src="coins.mp4" type="video/mp4">
+      <video class="coins-vid" autoplay muted loop playsinline webkit-playsinline preload="auto" disableRemotePlayback>
+        <source src="coins.mov" type='video/quicktime; codecs="hvc1"'>
         <source src="coins.webm" type="video/webm">
+        <source src="coins.mp4" type="video/mp4">
       </video>
     </div>
 
@@ -786,9 +791,10 @@
       <div class="wait-via" id="s4-usdc">VIA 69.21 USDC</div>
     </div>
     <div class="wait-vid-wrap">
-      <video class="coins-vid" autoplay muted loop playsinline>
-        <source src="coins.mp4" type="video/mp4">
+      <video class="coins-vid" autoplay muted loop playsinline webkit-playsinline preload="auto" disableRemotePlayback>
+        <source src="coins.mov" type='video/quicktime; codecs="hvc1"'>
         <source src="coins.webm" type="video/webm">
+        <source src="coins.mp4" type="video/mp4">
       </video>
     </div>
   </div>
@@ -824,7 +830,15 @@
        Figma "Transaction success screen + (1).svg": white card y=196..656, x=40..361 in 402×874 -->
   <div class="receipt" id="receipt">
     <div class="receipt-header" style="padding-right:30px;">
-      <span class="receipt-logo">BUNN</span>
+      <svg class="receipt-logo" viewBox="0 0 100 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g clip-path="url(#clip_rcpt_logo)">
+          <path d="M71.3985 13.9121C71.0359 14.9477 69.968 15.6585 68.8714 15.7768C66.5321 16.0153 64.2973 14.8494 63.0225 12.9428C62.0904 11.6155 61.2226 10.0756 60.3418 8.74569C59.2343 7.17127 58.914 8.02225 59.3626 9.39938C59.9335 11.2256 60.8177 14.0097 58.7713 15.2254C57.3995 15.9515 55.2378 15.8572 54.1337 14.674C53.6216 14.1147 53.4823 13.2929 53.4741 12.5602C53.4386 11.6321 53.4891 10.5194 53.4884 9.69765C53.4782 7.27756 53.47 5.13315 53.7793 2.53901C54.1364 0.232509 57.265 -0.0225874 59.1612 0.469005C61.3571 1.01839 62.2584 2.92232 63.2027 4.77177C63.5796 5.51713 64.735 7.85817 65.3952 7.91198C66.0705 7.84023 65.8322 6.2213 65.7141 5.55101C65.5967 5.02753 65.3918 4.42367 65.2423 3.87494C65.0402 3.27972 64.9603 2.55495 65.1788 1.99493C65.5414 0.872243 67.0005 0.233838 68.1668 0.456383C68.771 0.563337 69.3036 0.8563 69.7925 1.20041C72.3107 2.91036 71.7139 8.1312 71.6805 10.9572C71.6368 11.9138 71.63 12.992 71.4012 13.9021L71.3978 13.9121H71.3985Z" fill="black" fill-opacity="0.8"/>
+          <path d="M2.83641 7.94984C2.83641 7.94984 -0.432192 7.97973 0.0485051 4.24164C0.183701 3.19003 1.11027 2.02814 2.03206 1.41166C3.20444 0.581931 4.80495 0.38928 6.22109 0.279004C9.32855 0.0597806 17.4984 0.229181 16.8497 4.27751C16.6517 5.51313 15.2553 6.89956 14.199 7.13672M14.199 7.13672C14.199 7.13672 15.0908 7.35063 15.2929 7.3958C16.0829 7.58446 16.5936 8.03753 17.1802 8.58891C18.3819 9.68835 18.4488 11.6514 17.5059 12.9282C16.9548 13.6809 16.1334 14.2063 15.2826 14.599L15.2703 14.6043C13.4793 15.3809 11.5545 15.7263 9.62011 15.8798C7.63587 16.0093 5.17913 16.2119 3.32872 15.3735C1.80537 14.6833 0.737459 11.9962 2.83505 7.94917M11.0205 4.96906C10.9052 3.56869 8.55561 3.53348 7.81886 4.48013C7.50272 4.86078 7.36684 5.39821 7.38391 5.89711C7.4283 6.49432 7.19068 6.43786 8.572 6.42856C8.81645 6.42723 9.06704 6.39268 9.3108 6.35083C10.0994 6.22196 11.0356 5.84463 11.0205 4.98102V4.96906ZM11.082 11.4189C12.1089 10.6257 11.5989 9.48174 10.4627 9.15092C9.62762 8.89449 8.59453 8.88652 7.71849 9.10707C7.35455 9.22532 7.19068 9.07452 7.19273 9.89561C7.19409 10.3752 7.17497 10.9007 7.43103 11.3246C8.01346 12.2612 10.0544 12.1463 11.0711 11.4269L11.082 11.4189Z" fill="black" fill-opacity="0.8"/>
+          <path d="M42.7854 1.24088C44.9137 2.39679 44.5286 4.8966 44.291 6.93006C44.2145 7.61431 44.0315 9.24985 43.998 9.55145C43.8608 10.7313 43.5822 11.9383 42.9294 12.9541C41.5276 15.1589 38.666 15.9189 36.1471 15.899C34.1355 15.8744 32.0625 15.5821 30.3036 14.6288C28.8322 13.8549 27.9452 12.4339 27.4768 10.9213C26.8486 8.84794 26.9387 6.76664 27.2795 4.54252C27.5137 3.24312 27.5082 1.37507 28.7127 0.619748C30.2654 -0.318928 32.4784 -0.205994 33.8119 1.06484C35.2922 2.56087 34.1267 4.46214 33.6692 6.12957C32.985 8.31383 33.0035 10.6383 35.6138 10.904C36.397 10.9664 37.2642 10.6987 37.764 10.0869C38.0009 9.79459 38.1457 9.44914 38.2399 9.07978C38.7281 7.14065 37.9251 5.44067 37.7155 3.60517C37.594 2.70304 37.9702 1.79027 38.78 1.29137C39.9831 0.554645 41.5386 0.551323 42.7731 1.23557L42.7854 1.24221V1.24088Z" fill="black" fill-opacity="0.8"/>
+          <path d="M99.6326 13.9586C99.27 14.9942 98.2021 15.7051 97.1055 15.8233C94.7662 16.0618 92.5314 14.8959 91.2566 12.9893C90.3246 11.662 89.4567 10.1222 88.5759 8.7922C87.4684 7.21778 87.1481 8.06876 87.5968 9.44589C88.1676 11.2721 89.0518 14.0562 87.0054 15.2719C85.6337 15.998 83.4719 15.9037 82.3678 14.7205C81.8557 14.1612 81.7164 13.3394 81.7082 12.6067C81.6727 11.6786 81.7232 10.5659 81.7226 9.74416C81.7123 7.32407 81.7041 5.17966 82.0134 2.58552C82.3705 0.279018 85.4992 0.0239214 87.3953 0.515514C89.5912 1.0649 90.4925 2.96882 91.4369 4.81827C91.8138 5.56363 92.9691 7.90468 93.6294 7.95849C94.3047 7.88674 94.0664 6.26781 93.9482 5.59751C93.8308 5.07404 93.6259 4.47017 93.4764 3.92145C93.2743 3.32623 93.1944 2.60146 93.4129 2.04144C93.7755 0.918752 95.2346 0.280347 96.4009 0.502892C97.0052 0.609846 97.5378 0.902809 98.0266 1.24692C100.545 2.95687 99.9481 8.17771 99.9146 11.0037C99.8709 11.9603 99.8641 13.0385 99.6353 13.9486L99.6319 13.9586H99.6326Z" fill="black" fill-opacity="0.8"/>
+        </g>
+        <defs><clipPath id="clip_rcpt_logo"><rect width="100" height="16" fill="white"/></clipPath></defs>
+      </svg>
     </div>
     <div class="receipt-date" id="receipt-date">16.02.2026 10:35</div>
     <div class="receipt-section">
@@ -1086,95 +1100,100 @@
     else if (e.key === 'Escape') showScreen1();
   });
 
-  /* ── iOS canvas-based video (same approach as bunn.world — bypasses Safari autoplay) ── */
+  /* ── Coins video: HEVC canvas for iOS/Safari, native for others ──
+     Mirrors the exact approach used on bunn.world.
+     Both .coins-vid elements (s2 and s4) are handled independently. */
   (function() {
     var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    var video = document.querySelector('.coins-vid');
-    if (!video) return;
+    var videos = document.querySelectorAll('.coins-vid');
+    if (!videos.length) return;
 
-    if (isIOS) {
-      /* Swap sources to .mov for iOS HEVC */
-      video.querySelectorAll('source').forEach(function(s) { s.remove(); });
-      var src = document.createElement('source');
-      src.src = 'coins_mobile.mov';
-      src.type = 'video/quicktime';
-      video.appendChild(src);
+    videos.forEach(function(video) {
+      if (isIOS) {
+        /* Swap to 1080p HEVC .mov — same file as bunn.world iOS path */
+        video.querySelectorAll('source').forEach(function(s) { s.remove(); });
+        var src = document.createElement('source');
+        src.src = 'coins_1080.mov';
+        src.type = 'video/quicktime';
+        video.appendChild(src);
 
-      /* Create canvas sibling inside .wait-vid-wrap */
-      var wrap = video.closest('.wait-vid-wrap');
-      var canvasEl = document.createElement('canvas');
-      canvasEl.className = 'coins-canvas';
-      wrap.appendChild(canvasEl);
+        /* Canvas rendered into same wrap div */
+        var wrap = video.closest('.wait-vid-wrap');
+        var canvasEl = document.createElement('canvas');
+        canvasEl.className = 'coins-canvas';
+        wrap.appendChild(canvasEl);
 
-      /* Shrink native video out of sight, keep in DOM for playback engine */
-      video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
+        /* Shrink native video element out of sight, keep in DOM for decode */
+        video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
 
-      var ctx = canvasEl.getContext('2d');
-      var rafId = null;
-      var vidW = 1920, vidH = 1080;
+        var ctx = canvasEl.getContext('2d');
+        var rafId = null;
+        var vidW = 1920, vidH = 1080;
 
-      function resizeCanvas() {
-        var dpr = window.devicePixelRatio || 1;
-        var cw = wrap.offsetWidth;
-        var ch = wrap.offsetHeight;
-        canvasEl.width  = Math.round(cw * dpr);
-        canvasEl.height = Math.round(ch * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      }
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 200); });
-
-      function drawLoop() {
-        if (!video.paused && !video.ended) {
-          var cw = wrap.offsetWidth, ch = wrap.offsetHeight;
-          /* object-fit:cover + object-position:center bottom */
-          var scale = Math.max(cw / vidW, ch / vidH);
-          var dw = vidW * scale, dh = vidH * scale;
-          var dx = (cw - dw) / 2, dy = ch - dh;
-          ctx.clearRect(0, 0, cw, ch);
-          ctx.drawImage(video, dx, dy, dw, dh);
+        function resizeCanvas() {
+          var dpr = window.devicePixelRatio || 1;
+          var rect = wrap.getBoundingClientRect();
+          var cw = rect.width || wrap.offsetWidth;
+          var ch = rect.height || wrap.offsetHeight;
+          canvasEl.width  = Math.round(cw * dpr);
+          canvasEl.height = Math.round(ch * dpr);
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
-        rafId = requestAnimationFrame(drawLoop);
-      }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 200); });
 
-      function startDrawing() { if (!rafId) rafId = requestAnimationFrame(drawLoop); }
+        function drawLoop() {
+          if (!video.paused && !video.ended) {
+            var cw = wrap.offsetWidth, ch = wrap.offsetHeight;
+            /* object-fit:cover anchored to bottom */
+            var scale = Math.max(cw / vidW, ch / vidH);
+            var dw = vidW * scale, dh = vidH * scale;
+            var dx = (cw - dw) / 2, dy = ch - dh;
+            ctx.clearRect(0, 0, cw, ch);
+            ctx.drawImage(video, dx, dy, dw, dh);
+          }
+          rafId = requestAnimationFrame(drawLoop);
+        }
 
-      function startPlayback() {
-        video.muted = true;
-        video.play().then(startDrawing).catch(function() {
-          ['touchstart', 'touchend', 'click'].forEach(function(evt) {
-            document.addEventListener(evt, function handler() {
-              video.muted = true;
-              video.play().then(startDrawing);
-              document.removeEventListener(evt, handler);
-            }, { once: true, passive: true });
+        function startDrawing() { if (!rafId) rafId = requestAnimationFrame(drawLoop); }
+
+        function startPlayback() {
+          video.muted = true;
+          video.play().then(startDrawing).catch(function() {
+            ['touchstart', 'touchend', 'click'].forEach(function(evt) {
+              document.addEventListener(evt, function handler() {
+                video.muted = true;
+                video.play().then(startDrawing);
+                document.removeEventListener(evt, handler);
+              }, { once: true, passive: true });
+            });
           });
+        }
+
+        video.addEventListener('loadeddata', startPlayback);
+        video.load();
+
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden && video.paused) { video.muted = true; video.play().then(startDrawing); }
+        });
+
+      } else {
+        /* Non-iOS: native autoplay */
+        video.defaultMuted = true;
+        video.muted = true;
+        video.play().catch(function() {
+          document.addEventListener('touchstart', function handler() {
+            video.play();
+            document.removeEventListener('touchstart', handler);
+          }, { once: true });
+        });
+        document.addEventListener('visibilitychange', function() {
+          if (!document.hidden && video.paused) { video.muted = true; video.play(); }
         });
       }
-
-      video.addEventListener('loadeddata', startPlayback);
-      video.load();
-
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden && video.paused) { video.muted = true; video.play().then(startDrawing); }
-      });
-
-    } else {
-      /* Non-iOS: native autoplay with fallback */
-      video.defaultMuted = true;
-      video.muted = true;
-      video.play().catch(function() {
-        document.addEventListener('touchstart', function handler() {
-          video.play();
-          document.removeEventListener('touchstart', handler);
-        }, { once: true });
-      });
-      document.addEventListener('visibilitychange', function() {
-        if (!document.hidden && video.paused) { video.muted = true; video.play(); }
-      });
-    }
+    });
   })();
 
   render();
@@ -1185,6 +1204,13 @@
     if (!s4.classList.contains('hidden')) updateS4CardShape();
     if (!s5.classList.contains('hidden')) updateS5CardShape();
   });
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js');
+    });
+  }
 </script>
 </body>
 </html>
