@@ -1116,94 +1116,112 @@
     else if (e.key === 'Escape') showScreen1();
   });
 
-  /* ── Coins video: HEVC canvas for iOS/Safari, native for others ──
-     Mirrors the exact approach used on bunn.world.
-     Both .coins-vid elements (s2 and s4) are handled independently. */
+  /* ── Coins video: canvas-on-video for iOS/Safari (HEVC with Alpha), native elsewhere ──
+     iOS Safari requires: correct Content-Type (vercel.json), playsinline, muted, and a canvas
+     draw loop because <video> with alpha doesn't composite correctly without it.
+     The draw loop runs continuously (even when screen is invisible) so playback never
+     stalls when switching screens via the fade transition. */
   (function() {
-    var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    var isIOS    = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var useCanvas = isIOS || isSafari;
+
     var videos = document.querySelectorAll('.coins-vid');
     if (!videos.length) return;
 
     videos.forEach(function(video) {
-      if (isIOS) {
-        /* Swap to 1080p HEVC .mov — same file as bunn.world iOS path */
+      /* Always ensure muted + playsinline (required for iOS autoplay) */
+      video.muted        = true;
+      video.defaultMuted = true;
+      video.setAttribute('playsinline', '');
+      video.setAttribute('webkit-playsinline', '');
+
+      if (useCanvas) {
+        /* Replace sources with the 1080p HEVC .mov — served with correct Content-Type via vercel.json */
         video.querySelectorAll('source').forEach(function(s) { s.remove(); });
         var src = document.createElement('source');
-        src.src = 'coins_1080.mov';
+        src.src  = 'coins_1080.mov';
         src.type = 'video/quicktime';
         video.appendChild(src);
 
-        /* Canvas rendered into same wrap div */
+        /* Build canvas overlay inside the same wrapper */
         var wrap = video.closest('.wait-vid-wrap');
         var canvasEl = document.createElement('canvas');
         canvasEl.className = 'coins-canvas';
         wrap.appendChild(canvasEl);
 
-        /* Shrink native video element out of sight, keep in DOM for decode */
-        video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;';
+        /* Hide the native <video> — keep in DOM for decode */
+        video.style.cssText = 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;';
 
-        var ctx = canvasEl.getContext('2d');
+        var ctx  = canvasEl.getContext('2d');
         var rafId = null;
         var vidW = 1920, vidH = 1080;
 
         function resizeCanvas() {
           var dpr = window.devicePixelRatio || 1;
-          var rect = wrap.getBoundingClientRect();
-          var cw = rect.width || wrap.offsetWidth;
-          var ch = rect.height || wrap.offsetHeight;
-          canvasEl.width  = Math.round(cw * dpr);
-          canvasEl.height = Math.round(ch * dpr);
-          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          var cw  = wrap.offsetWidth  || 300;
+          var ch  = wrap.offsetHeight || 300;
+          if (canvasEl.width  !== Math.round(cw * dpr) ||
+              canvasEl.height !== Math.round(ch * dpr)) {
+            canvasEl.width  = Math.round(cw * dpr);
+            canvasEl.height = Math.round(ch * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          }
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
-        window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 200); });
+        window.addEventListener('orientationchange', function() { setTimeout(resizeCanvas, 300); });
 
         function drawLoop() {
-          if (!video.paused && !video.ended) {
+          /* Draw every frame even when screen is faded out (visibility:hidden) so
+             playback stays live and appears instantly when screen fades in */
+          if (!video.paused && !video.ended && video.readyState >= 2) {
             var cw = wrap.offsetWidth, ch = wrap.offsetHeight;
-            /* object-fit:cover anchored to bottom */
+            resizeCanvas();
+            /* object-fit:cover, anchor bottom */
             var scale = Math.max(cw / vidW, ch / vidH);
             var dw = vidW * scale, dh = vidH * scale;
-            var dx = (cw - dw) / 2, dy = ch - dh;
+            var dx = (cw - dw) / 2,  dy = ch - dh;
             ctx.clearRect(0, 0, cw, ch);
             ctx.drawImage(video, dx, dy, dw, dh);
           }
           rafId = requestAnimationFrame(drawLoop);
         }
 
-        function startDrawing() { if (!rafId) rafId = requestAnimationFrame(drawLoop); }
+        function startDrawing() { if (!rafId) { rafId = requestAnimationFrame(drawLoop); } }
 
-        function startPlayback() {
+        function tryPlay() {
           video.muted = true;
           video.play().then(startDrawing).catch(function() {
-            ['touchstart', 'touchend', 'click'].forEach(function(evt) {
-              document.addEventListener(evt, function handler() {
+            /* Fallback: start on first user gesture */
+            ['touchstart', 'touchend', 'pointerdown'].forEach(function(evt) {
+              document.addEventListener(evt, function once() {
                 video.muted = true;
                 video.play().then(startDrawing);
-                document.removeEventListener(evt, handler);
+                document.removeEventListener(evt, once);
               }, { once: true, passive: true });
             });
           });
         }
 
-        video.addEventListener('loadeddata', startPlayback);
+        /* loadedmetadata fires earlier than loadeddata — important on iOS */
+        if (video.readyState >= 1) { tryPlay(); }
+        else { video.addEventListener('loadedmetadata', tryPlay, { once: true }); }
         video.load();
 
+        /* Resume after tab is foregrounded */
         document.addEventListener('visibilitychange', function() {
           if (!document.hidden && video.paused) { video.muted = true; video.play().then(startDrawing); }
         });
 
       } else {
-        /* Non-iOS: native autoplay */
-        video.defaultMuted = true;
-        video.muted = true;
+        /* Non-Safari desktop: native autoplay, no canvas needed */
         video.play().catch(function() {
-          document.addEventListener('touchstart', function handler() {
+          document.addEventListener('touchstart', function once() {
             video.play();
-            document.removeEventListener('touchstart', handler);
-          }, { once: true });
+            document.removeEventListener('touchstart', once);
+          }, { once: true, passive: true });
         });
         document.addEventListener('visibilitychange', function() {
           if (!document.hidden && video.paused) { video.muted = true; video.play(); }
